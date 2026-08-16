@@ -19,6 +19,45 @@ function fileExt(src) {
   return m ? m[1].toUpperCase() : 'FILE';
 }
 
+function galleryInnerHTML(images) {
+  const columns = images.length <= 2 ? 2 : images.length === 3 ? 3 : 4;
+  const stagger = images.length > 2 ? ' stagger' : '';
+  const imgsHTML = images.map(img =>
+    `<img src="${escapeHTML(img.src)}" alt="${escapeHTML(img.alt || '')}" loading="lazy">`).join('');
+  return { html: `<div class="project-gallery cols-${columns}${stagger}">${imgsHTML}</div>`, columns };
+}
+
+// A running counter (reset per band in bandsHTML) so consecutive groups
+// alternate text-left/text-right instead of all facing the same way.
+let groupAlternator = 0;
+
+function groupHTML(block) {
+  const items = block.items || [];
+  const mediaTypes = ['picture', 'gallery', 'file'];
+  const mediaItems = items.filter(i => mediaTypes.includes(i.type));
+  const textItems = items.filter(i => !mediaTypes.includes(i.type));
+
+  // Simple pairing (one media item + some text): lay it out side by side.
+  if (mediaItems.length === 1 && textItems.length >= 1) {
+    const media = mediaItems[0];
+    const reverse = groupAlternator++ % 2 === 1;
+    const textHTML = textItems.map(blockHTML).join('');
+    let mediaHTML;
+    if (media.type === 'gallery') mediaHTML = galleryInnerHTML(media.images || []).html;
+    else if (media.type === 'file') mediaHTML = blockHTML(media);
+    else mediaHTML = `<img src="${escapeHTML(media.src)}" alt="${escapeHTML(media.alt || '')}" loading="lazy" style="cursor:zoom-in;">`;
+
+    return `<div class="split${reverse ? ' split--reverse' : ''} reveal">
+      <div class="split-text">${textHTML}</div>
+      <div class="split-media">${mediaHTML}</div>
+    </div>`;
+  }
+
+  // Anything richer than a simple pair: bind it visually with a bordered card.
+  const inner = items.map(blockHTML).join('');
+  return `<div class="content-group reveal">${inner}</div>`;
+}
+
 function blockHTML(block) {
   switch (block.type) {
     case 'title':
@@ -40,13 +79,11 @@ function blockHTML(block) {
         <img src="${escapeHTML(block.src)}" alt="${escapeHTML(block.alt || '')}" loading="lazy" style="width:100%; height:auto; border:1px solid var(--line); cursor:zoom-in;">
       </div>`;
     case 'gallery': {
-      const images = block.images || [];
-      const columns = images.length <= 2 ? 2 : images.length === 3 ? 3 : 4;
-      const stagger = images.length > 2 ? ' stagger' : '';
-      const imgsHTML = images.map(img =>
-        `<img src="${escapeHTML(img.src)}" alt="${escapeHTML(img.alt || '')}" loading="lazy">`).join('');
-      return `<div class="project-gallery cols-${columns}${stagger} reveal">${imgsHTML}</div>`;
+      const { html } = galleryInnerHTML(block.images || []);
+      return html.replace('class="project-gallery', 'class="project-gallery reveal');
     }
+    case 'group':
+      return groupHTML(block);
     default:
       return '';
   }
@@ -69,11 +106,16 @@ function groupIntoBands(blocks) {
   return bands;
 }
 
+function bandNeedsWide(items) {
+  return items.some(b => b.type === 'gallery' || b.type === 'group');
+}
+
 function bandsHTML(blocks) {
   const bands = groupIntoBands(blocks);
   return bands.map((band, i) => {
+    groupAlternator = 0;
     const bg = BAND_CYCLE[i % BAND_CYCLE.length];
-    const wide = band.items.some(b => b.type === 'gallery');
+    const wide = bandNeedsWide(band.items);
     const content = band.items.map(blockHTML).join('');
     return `<div class="band band--${bg}">
       <div class="band-inner${wide ? ' wide' : ''}">${content}</div>

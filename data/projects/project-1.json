@@ -1,0 +1,53 @@
+{
+  "title": "Process Innovation",
+  "eyebrow": "Rewrite by Levi's",
+  "meta": ["Project 3", "Bachelor Fashion Technology — Hogent"],
+  "blocks": [
+    { "type": "group", "items": [
+      { "type": "paragraph", "text": "A new semester means a new project in Fashion Technology at Hogent. This project: Process Innovation." },
+      { "type": "paragraph", "text": "For this project we were asked to design a jeans jacket out of post consumer jeans pants in the style of a known jeans brand. We could choose between Levi's, Lee and Wrangler. This jacket had to be attainable to produce on an industrial level. This is what our Rewrite team came up with." },
+      { "type": "paragraph", "text": "<em>Disclaimer: this is a school project — we did not actually design for any of these brands or have a collaboration, they just served as inspiration.</em>" },
+      { "type": "picture", "src": "https://static.wixstatic.com/media/2b9010_dcf22825c2104f6ab67da7e4a5bf4349~mv2.png/v1/fit/w_680,h_936,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Afbeelding1.png", "alt": "Rewrite jeans jacket design sketch" }
+    ]},
+
+    { "type": "paragraph", "text": "Our team chose Levi's as an inspiration, and so Rewrite by Levi's was born. We are a subbrand of Levi's, inspired by the silhouette and the lines in their original denim jacket design. Rewrite is a name I came up with. Our tagline is 'Rewrite the story of jeans'. I got the idea from the fact that we use overstock denim pants and second-hand pants to make a new denim jacket. The original pants that have been worn already got a story from their previous wearer. By taking these jeans and making it into something new, the new wearer can write a new story with this jacket." },
+    { "type": "paragraph", "text": "The first step of the process was creating our identity, but also making our own design inspired by the Levi's jacket. My teammates Luca, Lauren and I came up with the design, which has three different panels in each half of the front panels, a yoke and pockets. For the pockets we did something completely different than the original Levi's denim jackets. As we started from second hand denim pants for this project, we wanted to incorporate some parts from the pants that would make it more obvious to see where they came from. We used the back pockets on the front panels of the jacket and lined them up with the diagonal lines, so they would make more of a statement. The bottom edge of the jacket and the button placket are made out of the waistband of the pants, and the hanging loop in the collar of the jacket was originally a belt loop. The back panel also has 6 individual panels and a yoke." },
+    { "type": "paragraph", "text": "We used 3 different colors of jeans to make the different panels stand out. Our denim jacket is oversized and unisex, the design can be worn by everyone. The jacket is available in sizes Small, Medium and Large, but as it is oversized it can fit a lot of different body shapes and sizes." },
+
+    { "type": "group", "items": [
+      { "type": "paragraph", "text": "As we established both the identity of our brand and the design of the denim jacket, we started writing the business plan and making the technical pack for Rewrite. In the business plan Manon writes about the concept of our brand: who we are and what Rewrite stands for, who our target audience is and how we will reach them, as well as what our product assortment is, where we will sell our jacket, what the price is... In the technical pack Luna describes all the technical details of how our jacket gets made, so that the Calvelex factories who make our jackets know exactly what needs to happen." },
+      { "type": "picture", "src": "https://static.wixstatic.com/media/2b9010_9d56d88c87b746e793a97bfcb6a58d59~mv2.png/v1/fit/w_680,h_970,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Schermafbeelding%202024-05-24%20213258.png", "alt": "Rewrite technical pack" }
+    ]},
+
+    { "type": "paragraph", "text": "Once the actual prototype was made, we also started with the more theoretical side of the project. We had to do a whole process analysis, make a financial plan of how we were going to start up a business from scratch, and I wrote a file on the Goals & Key Performance Indicators of our brand." },
+
+    { "type": "title", "text": "Goals & Key Performance Indicators" },
+    { "type": "paragraph", "text": "As stated above, I wrote the file on the Goals and Key Performance Indicators of our brand. Below is a short summary of these 4 KPIs — the extensive information can be found in the actual file." },
+    { "type": "subtitle", "text": "KPI 1 — Waste reduction" },
+    { "type": "paragraph", "text": "When reprocessing used and deadstock jeans into Rewrite jeans jackets, we have a maximum of 35% textile waste per pair of jeans in surplus. The effective amount of waste is recalculated every three months when producing a new stock. This allows us to estimate whether our materials are being put to good use and whether we can find more efficient and innovative ways of extracting our fabric parts. It is our goal to reduce this percentage after optimising our process." },
+    { "type": "subtitle", "text": "KPI 2 — A small stock" },
+    { "type": "paragraph", "text": "As a start-up company, we start with an inventory of 300 jean jackets. To make sure that our stock is sufficient, a monthly analysis of sales figures is done in our marketing department. This way we have an overview of short-term sales performance so we can predict any peaks or troughs in sales and can react quickly to changes in demand. If we find that this stock is not enough we will have to produce a larger stock, but we remain mindful of customer demand so that we are not left with an overstock." },
+    { "type": "subtitle", "text": "KPI 3 — Product quality" },
+    { "type": "paragraph", "text": "The product quality of our jeans jackets is very important. As a sustainable brand, it is crucial for us that our customers can enjoy their jeans jacket for as long as possible. We do this by designing a timeless design, but above all it is guaranteed by using quality raw materials. The second hand denim we used gets tested in a quality lab each production cycle to get a clear view of the most high-quality parts and the parts we cannot use anymore because they show too much wear and tear. During production the jacket also undergoes different tests to ensure there are no mistakes, and after production Calvelex also performs Quality Control tests to ensure the jackets that get sold will have the longest life possible with its new wearer." },
+    { "type": "subtitle", "text": "KPI 4 — Market expansion" },
+    { "type": "paragraph", "text": "Rewrite is launching several marketing campaigns to boost sales of our jean jacket. Our goal is that after a one-year period, 1% of the people reached by these campaigns will eventually buy our garment. This is obviously an estimate, the actual conversion rate can vary greatly based on audience and effective sales. A year after launching the first teaser clip, it is important to start evaluating the sales figures and possibly make adjustments in our marketing policy for better results. After a few years, we hope to increase this percentage." },
+
+    { "type": "title", "text": "The Result" },
+    { "type": "gallery", "images": [
+      { "src": "https://static.wixstatic.com/media/2b9010_45600abf40564298ab0be19777fa17f4~mv2.jpg/v1/fit/w_800,h_800,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG-20240523-WA0004.jpg", "alt": "Rewrite denim jacket" },
+      { "src": "https://static.wixstatic.com/media/2b9010_878c2f59705d4aeb968ce324a92affaa~mv2.jpg/v1/fit/w_800,h_800,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_878c2f59705d4aeb968ce324a92affaa~mv2.jpg", "alt": "Rewrite denim jacket detail" },
+      { "src": "https://static.wixstatic.com/media/2b9010_12c458f65cd045278eaa204e45386bc0~mv2.jpg/v1/fit/w_546,h_728,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_12c458f65cd045278eaa204e45386bc0~mv2.jpg", "alt": "Rewrite jacket detail" },
+      { "src": "https://static.wixstatic.com/media/2b9010_6f9806a9e32844a6862c34f7fe3b081d~mv2.jpg/v1/fit/w_640,h_854,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_6f9806a9e32844a6862c34f7fe3b081d~mv2.jpg", "alt": "Rewrite jacket detail" },
+      { "src": "https://static.wixstatic.com/media/2b9010_6e787299ceee49deb9be36e1c59582be~mv2.jpg/v1/fit/w_728,h_942,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_6e787299ceee49deb9be36e1c59582be~mv2.jpg", "alt": "Rewrite jacket detail" },
+      { "src": "https://static.wixstatic.com/media/2b9010_6744b9fa7d8d4e7d9d243163387c46f3~mv2.jpg/v1/fit/w_678,h_678,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_6744b9fa7d8d4e7d9d243163387c46f3~mv2.jpg", "alt": "Rewrite jacket detail" }
+    ]},
+
+    { "type": "title", "text": "Meet the team" },
+    { "type": "paragraph", "text": "On the left side from top to bottom: Luca, Zita (me) and Lauren. On the right side from top to bottom: Anna, Manon and Luna." },
+    { "type": "gallery", "images": [
+      { "src": "https://static.wixstatic.com/media/2b9010_efa109903fba481cb1dd2f5b1990f80f~mv2.jpg/v1/fit/w_474,h_632,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_efa109903fba481cb1dd2f5b1990f80f~mv2.jpg", "alt": "Team photo" },
+      { "src": "https://static.wixstatic.com/media/2b9010_ffefec1b3dbe4fb3b9ec14e78079f3f4~mv2.jpg/v1/fit/w_568,h_758,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_ffefec1b3dbe4fb3b9ec14e78079f3f4~mv2.jpg", "alt": "Team photo" },
+      { "src": "https://static.wixstatic.com/media/2b9010_a5d3abdf76b24b2f8316dd0b32074cf3~mv2.jpg/v1/fit/w_712,h_946,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_a5d3abdf76b24b2f8316dd0b32074cf3~mv2.jpg", "alt": "Team photo" }
+    ]}
+  ]
+}

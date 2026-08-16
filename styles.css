@@ -505,6 +505,20 @@ h1, h2, h3, h4 {
 }
 .band--dark .file-block .file-info span { color: rgba(253,251,232,0.65); }
 
+/* Binds a run of blocks (e.g. text + a gallery + a file) into one visual unit
+   when they don't fit the simple text/media split layout. */
+.content-group {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.8rem;
+  margin: 0 0 1.4rem;
+  background: rgba(23,21,46,0.02);
+}
+.band--dark .content-group { background: rgba(253,251,232,0.04); border-color: rgba(253,251,232,0.2); }
+.content-group > *:last-child { margin-bottom: 0; }
+.content-group .project-gallery { margin-top: 1rem; }
+.content-group .file-block { margin-top: 1rem; margin-bottom: 0; }
+
 /* Alternating background bands */
 .band {
   padding: 4rem 2rem;

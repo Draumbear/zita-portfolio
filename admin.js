@@ -245,14 +245,28 @@ async function moveProject(slug, direction) {
 
 const BLOCK_LABELS = {
   title: 'Title', subtitle: 'Subtitle', paragraph: 'Paragraph',
-  file: 'File', picture: 'Picture', gallery: 'Gallery'
+  file: 'File', picture: 'Picture', gallery: 'Gallery', group: 'Group'
 };
 
 function blankBlock(type) {
   if (type === 'gallery') return { type, images: [] };
   if (type === 'picture') return { type, src: '', alt: '' };
   if (type === 'file') return { type, label: '', src: '' };
+  if (type === 'group') return { type, items: [] };
   return { type, text: '' };
+}
+
+// A group block nests its own items array. Both levels are edited with the
+// same field/action markup — `gi` distinguishes "item i inside group's own
+// list" from "top-level block i" wherever an action fires.
+function dataAttrs(i, gi) {
+  return gi == null ? `data-i="${i}"` : `data-i="${i}" data-gi="${gi}"`;
+}
+function resolveContainer(i, gi) {
+  return gi == null ? currentDraft.blocks : currentDraft.blocks[i].items;
+}
+function resolveIndex(i, gi) {
+  return gi == null ? i : gi;
 }
 
 async function openEditor(slug, groupForNew) {
@@ -304,48 +318,82 @@ function renderBlocks() {
   wrap.innerHTML = currentDraft.blocks.map((block, i) => blockEditorHTML(block, i)).join('');
 }
 
-function blockEditorHTML(block, i) {
+function blockEditorHTML(block, i, gi) {
+  const attrs = dataAttrs(i, gi);
   let fields = '';
+
   if (block.type === 'title' || block.type === 'subtitle') {
-    fields = `<input type="text" placeholder="${BLOCK_LABELS[block.type]} text" value="${(block.text || '').replace(/"/g, '&quot;')}" data-action="text" data-i="${i}">`;
+    fields = `<input type="text" placeholder="${BLOCK_LABELS[block.type]} text" value="${(block.text || '').replace(/"/g, '&quot;')}" data-action="text" ${attrs}>`;
   } else if (block.type === 'paragraph') {
-    fields = `<textarea placeholder="Paragraph text" data-action="text" data-i="${i}" rows="3">${block.text || ''}</textarea>`;
+    fields = `<textarea placeholder="Paragraph text" data-action="text" ${attrs} rows="3">${block.text || ''}</textarea>`;
   } else if (block.type === 'file') {
     fields = `
-      <input type="text" placeholder="Label (e.g. Download CV)" value="${(block.label || '').replace(/"/g, '&quot;')}" data-action="label" data-i="${i}">
-      <input type="file" data-action="fileUpload" data-i="${i}">
+      <input type="text" placeholder="Label (e.g. Download CV)" value="${(block.label || '').replace(/"/g, '&quot;')}" data-action="label" ${attrs}>
+      <input type="file" data-action="fileUpload" ${attrs}>
       ${block.src || block._pendingFile ? `<span class="hint">${block._pendingFile ? block._pendingFile.name : 'File attached'}</span>` : ''}
     `;
   } else if (block.type === 'picture') {
     fields = `
-      <input type="file" accept="image/*" data-action="pictureUpload" data-i="${i}">
-      <input type="text" placeholder="Alt text" value="${(block.alt || '').replace(/"/g, '&quot;')}" data-action="alt" data-i="${i}">
+      <input type="file" accept="image/*" data-action="pictureUpload" ${attrs}>
+      <input type="text" placeholder="Alt text" value="${(block.alt || '').replace(/"/g, '&quot;')}" data-action="alt" ${attrs}>
       ${block.src || block._previewSrc ? `<img src="${block._previewSrc || block.src}" alt="" style="width:70px;height:90px;object-fit:cover;border-radius:4px;">` : ''}
     `;
   } else if (block.type === 'gallery') {
     fields = `
-      <input type="file" accept="image/*" multiple data-action="galleryUpload" data-i="${i}">
+      <input type="file" accept="image/*" multiple data-action="galleryUpload" ${attrs}>
       <div class="gallery-images">
-        ${(block.images || []).map((img, gi) => `
+        ${(block.images || []).map((img, imgI) => `
           <div class="gallery-image-item">
             <img src="${img._previewSrc || img.src}" alt="">
-            <button data-action="removeGalleryImage" data-i="${i}" data-gi="${gi}" title="Remove">&times;</button>
+            <button data-action="removeGalleryImage" ${attrs} data-imgi="${imgI}" title="Remove">&times;</button>
           </div>
         `).join('')}
       </div>
       <p class="hint" style="margin:0.3rem 0 0;">Columns and layout are chosen automatically based on how many photos you add.</p>
     `;
+  } else if (block.type === 'group') {
+    const items = block.items || [];
+    fields = `
+      <p class="group-hint">Text + one picture, gallery or file will be laid out side by side automatically; anything more is bound together in a bordered card.</p>
+      <div class="group-items">
+        ${items.map((sub, subI) => blockEditorHTML(sub, i, subI)).join('') || '<p class="hint">Empty — add an item below.</p>'}
+      </div>
+      <select data-action="addGroupItem" data-i="${i}" style="width:auto;">
+        <option value="">+ Add item to group…</option>
+        <option value="subtitle">Subtitle</option>
+        <option value="paragraph">Paragraph</option>
+        <option value="file">File (download)</option>
+        <option value="picture">Picture</option>
+        <option value="gallery">Gallery</option>
+      </select>
+    `;
+    return `
+      <div class="content-item" data-i="${i}">
+        <div class="content-item-fields">
+          <strong style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--a-ink-soft);">Group</strong>
+          ${fields}
+        </div>
+        <div class="content-item-actions">
+          <button class="btn-admin secondary small" data-action="moveUp" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="btn-admin secondary small" data-action="moveDown" data-i="${i}" ${i === currentDraft.blocks.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="btn-admin danger small" data-action="removeBlock" data-i="${i}">✕</button>
+        </div>
+      </div>
+    `;
   }
+
+  const container = resolveContainer(i, gi);
+  const idx = resolveIndex(i, gi);
   return `
-    <div class="content-item" data-i="${i}">
+    <div class="content-item" ${attrs}>
       <div class="content-item-fields">
         <strong style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--a-ink-soft);">${BLOCK_LABELS[block.type]}</strong>
         ${fields}
       </div>
       <div class="content-item-actions">
-        <button class="btn-admin secondary small" data-action="moveUp" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
-        <button class="btn-admin secondary small" data-action="moveDown" data-i="${i}" ${i === currentDraft.blocks.length - 1 ? 'disabled' : ''}>↓</button>
-        <button class="btn-admin danger small" data-action="removeBlock" data-i="${i}">✕</button>
+        <button class="btn-admin secondary small" data-action="moveUp" ${attrs} ${idx === 0 ? 'disabled' : ''}>↑</button>
+        <button class="btn-admin secondary small" data-action="moveDown" ${attrs} ${idx === container.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="btn-admin danger small" data-action="removeBlock" ${attrs}>✕</button>
       </div>
     </div>
   `;
@@ -363,7 +411,16 @@ document.getElementById('pe-blocks').addEventListener('change', (e) => {
   const action = t.dataset.action;
   if (!action) return;
   const i = +t.dataset.i;
-  const block = currentDraft.blocks[i];
+  const gi = t.dataset.gi !== undefined ? +t.dataset.gi : null;
+
+  if (action === 'addGroupItem' && t.value) {
+    currentDraft.blocks[i].items.push(blankBlock(t.value));
+    t.value = '';
+    renderBlocks();
+    return;
+  }
+
+  const block = resolveContainer(i, gi)[resolveIndex(i, gi)];
 
   if (action === 'fileUpload' && t.files[0]) {
     block._pendingFile = t.files[0];
@@ -387,7 +444,9 @@ document.getElementById('pe-blocks').addEventListener('input', (e) => {
   const t = e.target;
   const action = t.dataset.action;
   if (!action) return;
-  const block = currentDraft.blocks[+t.dataset.i];
+  const i = +t.dataset.i;
+  const gi = t.dataset.gi !== undefined ? +t.dataset.gi : null;
+  const block = resolveContainer(i, gi)[resolveIndex(i, gi)];
   if (action === 'text') block.text = t.value;
   if (action === 'alt') block.alt = t.value;
   if (action === 'label') block.label = t.value;
@@ -399,11 +458,20 @@ document.getElementById('pe-blocks').addEventListener('click', (e) => {
   const action = btn.dataset.action;
   const i = +btn.dataset.i;
   const gi = btn.dataset.gi !== undefined ? +btn.dataset.gi : null;
+  const imgi = btn.dataset.imgi !== undefined ? +btn.dataset.imgi : null;
 
-  if (action === 'removeBlock') { currentDraft.blocks.splice(i, 1); renderBlocks(); }
-  if (action === 'moveUp' && i > 0) { swap(currentDraft.blocks, i, i - 1); renderBlocks(); }
-  if (action === 'moveDown' && i < currentDraft.blocks.length - 1) { swap(currentDraft.blocks, i, i + 1); renderBlocks(); }
-  if (action === 'removeGalleryImage') { currentDraft.blocks[i].images.splice(gi, 1); renderBlocks(); }
+  if (action === 'removeGalleryImage') {
+    resolveContainer(i, gi)[resolveIndex(i, gi)].images.splice(imgi, 1);
+    renderBlocks();
+    return;
+  }
+
+  const container = resolveContainer(i, gi);
+  const idx = resolveIndex(i, gi);
+
+  if (action === 'removeBlock') { container.splice(idx, 1); renderBlocks(); }
+  if (action === 'moveUp' && idx > 0) { swap(container, idx, idx - 1); renderBlocks(); }
+  if (action === 'moveDown' && idx < container.length - 1) { swap(container, idx, idx + 1); renderBlocks(); }
 });
 
 function swap(arr, i, j) { const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; }
@@ -416,6 +484,21 @@ document.getElementById('cancelEditBtn').addEventListener('click', () => {
 document.getElementById('saveProjectBtn').addEventListener('click', (e) => {
   withBusy(e.target, 'Saving…', saveProject);
 });
+
+async function uploadPendingFiles(block) {
+  if ((block.type === 'file' || block.type === 'picture') && block._pendingFile) {
+    block.src = await gh.uploadImage(block._pendingFile, 'assets/uploads');
+    delete block._pendingFile; delete block._previewSrc;
+  }
+  if (block.type === 'gallery') {
+    for (const img of block.images) {
+      if (img._pendingFile) {
+        img.src = await gh.uploadImage(img._pendingFile, 'assets/uploads');
+        delete img._pendingFile; delete img._previewSrc;
+      }
+    }
+  }
+}
 
 async function saveProject() {
   try {
@@ -435,19 +518,12 @@ async function saveProject() {
     currentDraft.slug = slug;
 
     if (currentDraft.contentType !== 'legacy') {
-      // upload any pending files for this project's blocks
+      // upload any pending files for this project's blocks (including
+      // items nested inside a group block)
       for (const block of currentDraft.blocks) {
-        if ((block.type === 'file' || block.type === 'picture') && block._pendingFile) {
-          block.src = await gh.uploadImage(block._pendingFile, 'assets/uploads');
-          delete block._pendingFile; delete block._previewSrc;
-        }
-        if (block.type === 'gallery') {
-          for (const img of block.images) {
-            if (img._pendingFile) {
-              img.src = await gh.uploadImage(img._pendingFile, 'assets/uploads');
-              delete img._pendingFile; delete img._previewSrc;
-            }
-          }
+        await uploadPendingFiles(block);
+        if (block.type === 'group') {
+          for (const sub of block.items) await uploadPendingFiles(sub);
         }
       }
 
