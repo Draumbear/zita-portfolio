@@ -1,0 +1,22 @@
+{
+  "heroEyebrow": "Fashion Technology",
+  "heroName": "Zita Decoopman",
+  "heroSub": "Portfolio",
+  "aboutEyebrow": "About",
+  "aboutHeading": "Hello, I'm Zita.",
+  "aboutPhoto": {
+    "src": "https://static.wixstatic.com/media/2b9010_cdddf2bce00c4118ad6ce1038162e111~mv2.jpg/v1/fit/w_760,h_900,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20260212152751.jpg",
+    "alt": "Zita Decoopman"
+  },
+  "aboutCaption": "Tasmania, 2026",
+  "aboutParagraphs": [
+    "I am a recent Fashion Technology graduate from University College Ghent, where I developed a strong background in technical garment construction, bespoke pattern making, and gained three years of industrial sewing experience.",
+    "Before that, I studied Textile Design at the KASK School of Arts for two years, where I gained a lot of knowledge on weaving, knitting, screenprinting and print design.",
+    "I am a hard worker, highly organised, meticulously detail-oriented and perform well in a team setting. I tackle projects with a positive, hands-on approach. I'm excited to bring my production skills and strong work ethic to a dynamic, creative team.",
+    "In the future, I am hoping to gain more knowledge in finishing techniques, bespoke tailoring, draping and haute couture, and would love to eventually follow an Haute Couture Embroidery course.",
+    "In my free time I love to be creative, hike, travel, go to art workshops and participate in cultural exchanges around the globe. I also like to make my own clothes."
+  ],
+  "cvUrl": "https://d9d3094d-d20d-4425-894e-5f9dd99a4810.filesusr.com/ugd/2b9010_0c677cfa68ea4978b6426710576d04e5.docx?dn=Resume%20Zita%20Decoopman.docx",
+  "contactName": "Zita Decoopman",
+  "contactEmail": "zita.decoopman@gmail.com"
+}

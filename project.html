@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project — Zita Decoopman</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="site-header">
+  <nav class="nav">
+    <a class="brand" href="index.html">Zita Decoopman</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu"><span></span></button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html#top">Home</a></li>
+      <li><a href="index.html#portfolio" class="active">Portfolio</a></li>
+      <li><a href="index.html#about">About me</a></li>
+      <li><a href="index.html#contact">Contact</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+  <a href="index.html#portfolio" class="floating-back">&larr; All Projects</a>
+
+  <section class="project-hero" id="projectHero">
+    <p class="eyebrow" id="projectEyebrow"></p>
+    <h1 id="projectTitle">Loading…</h1>
+    <div class="project-meta" id="projectMeta"></div>
+  </section>
+
+  <section class="project-body" id="projectBody"></section>
+
+  <div class="project-nav">
+    <a href="index.html#portfolio">&larr; Back to Portfolio</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>&copy; <span id="year"></span> Zita Decoopman</p>
+</footer>
+
+<script src="script.js"></script>
+<script src="project-render.js"></script>
+<script>renderProject();</script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site Dashboard — Zita Decoopman</title>
+<link rel="stylesheet" href="admin.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<meta name="robots" content="noindex, nofollow">
+</head>
+<body class="admin-body">
+
+<header class="admin-header">
+  <h1>Site Dashboard</h1>
+  <span class="conn-status off" id="connStatus">Not connected</span>
+</header>
+
+<main class="admin-main">
+
+  <!-- Connect panel -->
+  <div id="connectPanel" class="admin-card">
+    <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;">Connect to GitHub</h2>
+    <p class="hint" style="margin-bottom:1.2rem;">
+      This dashboard edits your portfolio by committing directly to your GitHub repo, which
+      GitHub Pages then republishes automatically — usually within a minute. You'll need a
+      <strong>fine-grained personal access token</strong> scoped to just this repository.
+    </p>
+    <ol style="font-size:0.85rem; color:var(--a-ink-soft); padding-left:1.2rem; margin-bottom:1.4rem;">
+      <li>Go to <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
+      <li>Under "Repository access", choose <strong>Only select repositories</strong> and pick your portfolio repo</li>
+      <li>Under "Permissions" → "Repository permissions", set <strong>Contents</strong> to <strong>Read and write</strong></li>
+      <li>Generate the token and paste it below (it's only stored in this browser, never sent anywhere but github.com)</li>
+    </ol>
+
+    <div class="admin-row">
+      <div class="admin-field">
+        <label for="ghOwner">GitHub username</label>
+        <input type="text" id="ghOwner" placeholder="Draumbear">
+      </div>
+      <div class="admin-field">
+        <label for="ghRepo">Repository name</label>
+        <input type="text" id="ghRepo" placeholder="zita-portfolio">
+      </div>
+    </div>
+    <div class="admin-row">
+      <div class="admin-field">
+        <label for="ghBranch">Branch</label>
+        <input type="text" id="ghBranch" value="main">
+      </div>
+      <div class="admin-field">
+        <label for="ghToken">Personal access token</label>
+        <input type="password" id="ghToken" placeholder="github_pat_...">
+      </div>
+    </div>
+    <button class="btn-admin" id="connectBtn">Connect</button>
+    <span id="connectError" class="hint" style="color:var(--a-danger); display:block; margin-top:0.6rem;"></span>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.4rem;">
+      <div class="admin-tabs">
+        <button data-tab="site" class="active">Site &amp; Bio</button>
+        <button data-tab="projects">Projects</button>
+      </div>
+      <button class="btn-admin secondary small" id="disconnectBtn">Disconnect</button>
+    </div>
+
+    <!-- Site & Bio tab -->
+    <section id="tab-site" class="admin-tab">
+      <div class="admin-card">
+        <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;">Hero</h2>
+        <div class="admin-row">
+          <div class="admin-field">
+            <label for="f-heroEyebrow">Eyebrow text</label>
+            <input type="text" id="f-heroEyebrow">
+          </div>
+          <div class="admin-field">
+            <label for="f-heroSub">Subtitle (under name)</label>
+            <input type="text" id="f-heroSub">
+          </div>
+        </div>
+        <div class="admin-field">
+          <label for="f-heroName">Name (use a line break for two lines)</label>
+          <textarea id="f-heroName" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;">About</h2>
+        <div class="admin-row">
+          <div class="admin-field">
+            <label for="f-aboutEyebrow">Eyebrow text</label>
+            <input type="text" id="f-aboutEyebrow">
+          </div>
+          <div class="admin-field">
+            <label for="f-aboutHeading">Heading</label>
+            <input type="text" id="f-aboutHeading">
+          </div>
+        </div>
+        <div class="admin-field">
+          <label for="f-aboutParagraphs">Bio paragraphs (one per line)</label>
+          <textarea id="f-aboutParagraphs" rows="8"></textarea>
+        </div>
+        <div class="admin-row">
+          <div class="admin-field">
+            <label for="f-aboutPhoto">Profile photo</label>
+            <input type="file" id="f-aboutPhoto" accept="image/*">
+            <img id="aboutPhotoPreview" alt="" style="margin-top:0.6rem; width:110px; height:140px; object-fit:cover; border-radius:6px; border:1px solid var(--a-line);">
+          </div>
+          <div class="admin-field">
+            <label for="f-aboutCaption">Photo caption</label>
+            <input type="text" id="f-aboutCaption">
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;">CV &amp; Contact</h2>
+        <div class="admin-field">
+          <label for="f-cvFile">Replace CV file (PDF or Word)</label>
+          <input type="file" id="f-cvFile" accept=".pdf,.doc,.docx">
+          <p class="hint" id="currentCvLink"></p>
+        </div>
+        <div class="admin-row">
+          <div class="admin-field">
+            <label for="f-contactName">Contact display name</label>
+            <input type="text" id="f-contactName">
+          </div>
+          <div class="admin-field">
+            <label for="f-contactEmail">Contact email</label>
+            <input type="email" id="f-contactEmail">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-admin" id="saveSiteBtn">Save changes</button>
+    </section>
+
+    <!-- Projects tab -->
+    <section id="tab-projects" class="admin-tab hidden">
+      <div class="admin-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h2 style="margin:0; font-family:'Cormorant Garamond',serif;">Fashion Technology</h2>
+          <button class="btn-admin small" data-add-project="fashion-technology">+ Add project</button>
+        </div>
+        <div id="list-fashion-technology"></div>
+      </div>
+
+      <div class="admin-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h2 style="margin:0; font-family:'Cormorant Garamond',serif;">Personal Projects</h2>
+          <button class="btn-admin small" data-add-project="personal">+ Add project</button>
+        </div>
+        <div id="list-personal"></div>
+      </div>
+
+      <!-- Project editor -->
+      <div class="admin-card hidden" id="projectEditor">
+        <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;" id="editorTitle">Edit project</h2>
+        <p class="hint hidden" id="legacyNotice" style="background:var(--a-bg2); padding:0.8rem; border-radius:6px;">
+          This project's page was custom-built and isn't editable as blocks here. You can still update its
+          card details below (title, thumbnail, order) — for content changes, ask Claude to update the page directly.
+        </p>
+
+        <div class="admin-row">
+          <div class="admin-field">
+            <label for="pe-title">Title</label>
+            <input type="text" id="pe-title">
+          </div>
+          <div class="admin-field">
+            <label for="pe-group">Category</label>
+            <select id="pe-group">
+              <option value="fashion-technology">Fashion Technology</option>
+              <option value="personal">Personal Projects</option>
+            </select>
+          </div>
+        </div>
+        <div class="admin-row">
+          <div class="admin-field">
+            <label for="pe-eyebrow">Eyebrow text (project page)</label>
+            <input type="text" id="pe-eyebrow">
+          </div>
+          <div class="admin-field">
+            <label for="pe-meta">Meta line (e.g. "Project 1 · Hogent · 2024")</label>
+            <input type="text" id="pe-meta">
+          </div>
+        </div>
+        <div class="admin-field">
+          <label for="pe-thumb">Thumbnail image</label>
+          <input type="file" id="pe-thumb" accept="image/*">
+          <img id="pe-thumb-preview" alt="" style="margin-top:0.6rem; width:90px; height:126px; object-fit:cover; border-radius:6px; border:1px solid var(--a-line);">
+        </div>
+
+        <div id="pe-blocks-wrap" class="hidden">
+          <h3 style="font-family:'Cormorant Garamond',serif; font-weight:600;">Page content</h3>
+          <p class="hint" style="margin-bottom:1rem;">
+            Build the page from standard blocks, in order. Colours and layout are applied
+            automatically — a new coloured section starts each time you add a Title block.
+          </p>
+          <div id="pe-blocks"></div>
+          <select id="addBlockSelect" style="width:auto; margin-top:0.4rem;">
+            <option value="">+ Add block…</option>
+            <option value="title">Title</option>
+            <option value="subtitle">Subtitle</option>
+            <option value="paragraph">Paragraph</option>
+            <option value="file">File (download)</option>
+            <option value="picture">Picture</option>
+            <option value="gallery">Gallery</option>
+          </select>
+        </div>
+
+        <div style="margin-top:1.4rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+          <button class="btn-admin" id="saveProjectBtn">Save project</button>
+          <button class="btn-admin secondary" id="cancelEditBtn">Cancel</button>
+          <button class="btn-admin danger" id="deleteProjectBtn" style="margin-left:auto;">Delete project</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<script src="admin-github.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

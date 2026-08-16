@@ -1,11 +1,14 @@
 document.getElementById('year').textContent = new Date().getFullYear();
 
 // Graceful fallback for images blocked by the original host's hotlink protection
-document.querySelectorAll('.card-img img, .about-img img').forEach(img => {
-  img.addEventListener('error', () => {
-    img.closest('.card-img, .about-img').classList.add('img-fallback');
-  }, { once: true });
-});
+// (delegated so it also covers cards added dynamically by site-data.js)
+document.addEventListener('error', (e) => {
+  const img = e.target;
+  if (img.tagName === 'IMG') {
+    const wrap = img.closest('.card-img, .about-img');
+    if (wrap) wrap.classList.add('img-fallback');
+  }
+}, true);
 
 const navToggle = document.getElementById('navToggle');
 const navLinks = document.getElementById('navLinks');
@@ -54,39 +57,49 @@ if (form) {
   });
 }
 
-// Scroll-reveal for project pages
-const revealEls = document.querySelectorAll('.reveal');
-if (revealEls.length) {
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        revealObserver.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
-  revealEls.forEach(el => revealObserver.observe(el));
-}
+// Scroll-reveal + lightbox for project pages.
+// Exposed as window.initProjectInteractions() so pages that inject their
+// content dynamically (see project-render.js) can (re)run this after
+// the markup lands in the DOM. Safe to call more than once.
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
 
-// Lightbox for project galleries
-const galleryImgs = document.querySelectorAll('.project-gallery img, .split-media img');
-if (galleryImgs.length) {
-  const lightbox = document.createElement('div');
+let lightbox, lightboxImg;
+function ensureLightbox() {
+  if (lightbox) return;
+  lightbox = document.createElement('div');
   lightbox.className = 'lightbox';
   lightbox.innerHTML = '<button class="lightbox-close" aria-label="Close">&times;</button><img alt="">';
   document.body.appendChild(lightbox);
-  const lightboxImg = lightbox.querySelector('img');
+  lightboxImg = lightbox.querySelector('img');
 
   const closeLightbox = () => lightbox.classList.remove('open');
   lightbox.addEventListener('click', closeLightbox);
-  lightbox.querySelector('img').addEventListener('click', (e) => e.stopPropagation());
+  lightboxImg.addEventListener('click', (e) => e.stopPropagation());
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
 
-  galleryImgs.forEach(img => {
-    img.addEventListener('click', () => {
-      lightboxImg.src = img.src;
-      lightboxImg.alt = img.alt;
-      lightbox.classList.add('open');
-    });
+  // Delegated so it also covers images added after this point.
+  document.addEventListener('click', (e) => {
+    const img = e.target.closest('.project-gallery img, .split-media img');
+    if (!img) return;
+    lightboxImg.src = img.src;
+    lightboxImg.alt = img.alt;
+    lightbox.classList.add('open');
   });
 }
+
+window.initProjectInteractions = function initProjectInteractions() {
+  document.querySelectorAll('.reveal:not([data-observed])').forEach(el => {
+    el.setAttribute('data-observed', '');
+    revealObserver.observe(el);
+  });
+  if (document.querySelector('.project-gallery img, .split-media img')) ensureLightbox();
+};
+
+window.initProjectInteractions();

@@ -30,9 +30,9 @@
 
   <section class="hero" id="top">
     <div class="hero-inner">
-      <p class="eyebrow">Fashion Technology</p>
-      <h1>Zita<br>Decoopman</h1>
-      <p class="hero-sub">Portfolio</p>
+      <p class="eyebrow" id="heroEyebrow">Fashion Technology</p>
+      <h1 id="heroName">Zita<br>Decoopman</h1>
+      <p class="hero-sub" id="heroSub">Portfolio</p>
       <a href="#portfolio" class="scroll-cue" aria-label="Scroll to portfolio">
         <span></span>
       </a>
@@ -47,7 +47,7 @@
 
     <div class="group">
       <h3 class="group-title">Projects at Fashion Technology</h3>
-      <div class="grid">
+      <div class="grid" id="grid-fashion-technology">
 
         <a class="card" href="rewind.html">
           <div class="card-img">
@@ -82,7 +82,7 @@
 
     <div class="group">
       <h3 class="group-title">Personal Projects</h3>
-      <div class="grid grid-narrow">
+      <div class="grid grid-narrow" id="grid-personal">
 
         <a class="card" href="personal-projects.html">
           <div class="card-img">
@@ -105,18 +105,20 @@
   <section class="section about" id="about">
     <div class="about-grid">
       <div class="about-img">
-        <img src="https://static.wixstatic.com/media/2b9010_cdddf2bce00c4118ad6ce1038162e111~mv2.jpg/v1/fill/w_760,h_900,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20260212152751.jpg" alt="Zita Decoopman">
-        <p class="caption">Tasmania, 2026</p>
+        <img id="aboutPhoto" src="https://static.wixstatic.com/media/2b9010_cdddf2bce00c4118ad6ce1038162e111~mv2.jpg/v1/fill/w_760,h_900,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20260212152751.jpg" alt="Zita Decoopman">
+        <p class="caption" id="aboutCaption">Tasmania, 2026</p>
       </div>
       <div class="about-copy">
-        <p class="eyebrow">About</p>
-        <h2>Hello, I'm Zita.</h2>
-        <p>I am a recent Fashion Technology graduate from University College Ghent, where I developed a strong background in technical garment construction, bespoke pattern making, and gained three years of industrial sewing experience.</p>
-        <p>Before that, I studied Textile Design at the KASK School of Arts for two years, where I gained a lot of knowledge on weaving, knitting, screenprinting and print design.</p>
-        <p>I am a hard worker, highly organised, meticulously detail-oriented and perform well in a team setting. I tackle projects with a positive, hands-on approach. I'm excited to bring my production skills and strong work ethic to a dynamic, creative team.</p>
-        <p>In the future, I am hoping to gain more knowledge in finishing techniques, bespoke tailoring, draping and haute couture, and would love to eventually follow an Haute Couture Embroidery course.</p>
-        <p>In my free time I love to be creative, hike, travel, go to art workshops and participate in cultural exchanges around the globe. I also like to make my own clothes.</p>
-        <a class="btn" href="https://d9d3094d-d20d-4425-894e-5f9dd99a4810.filesusr.com/ugd/2b9010_0c677cfa68ea4978b6426710576d04e5.docx?dn=Resume%20Zita%20Decoopman.docx">Download CV</a>
+        <p class="eyebrow" id="aboutEyebrow">About</p>
+        <h2 id="aboutHeading">Hello, I'm Zita.</h2>
+        <div id="aboutParagraphs">
+          <p>I am a recent Fashion Technology graduate from University College Ghent, where I developed a strong background in technical garment construction, bespoke pattern making, and gained three years of industrial sewing experience.</p>
+          <p>Before that, I studied Textile Design at the KASK School of Arts for two years, where I gained a lot of knowledge on weaving, knitting, screenprinting and print design.</p>
+          <p>I am a hard worker, highly organised, meticulously detail-oriented and perform well in a team setting. I tackle projects with a positive, hands-on approach. I'm excited to bring my production skills and strong work ethic to a dynamic, creative team.</p>
+          <p>In the future, I am hoping to gain more knowledge in finishing techniques, bespoke tailoring, draping and haute couture, and would love to eventually follow an Haute Couture Embroidery course.</p>
+          <p>In my free time I love to be creative, hike, travel, go to art workshops and participate in cultural exchanges around the globe. I also like to make my own clothes.</p>
+        </div>
+        <a class="btn" id="cvLink" href="https://d9d3094d-d20d-4425-894e-5f9dd99a4810.filesusr.com/ugd/2b9010_0c677cfa68ea4978b6426710576d04e5.docx?dn=Resume%20Zita%20Decoopman.docx">Download CV</a>
       </div>
     </div>
   </section>
@@ -128,8 +130,8 @@
     </div>
     <div class="contact-grid">
       <div class="contact-info">
-        <h3>Zita Decoopman</h3>
-        <p><a href="mailto:zita.decoopman@gmail.com">zita.decoopman@gmail.com</a></p>
+        <h3 id="contactName">Zita Decoopman</h3>
+        <p><a href="mailto:zita.decoopman@gmail.com" id="contactEmail">zita.decoopman@gmail.com</a></p>
       </div>
       <form class="contact-form" id="contactForm">
         <div class="row">
@@ -168,6 +170,7 @@
   <p>&copy; <span id="year"></span> Zita Decoopman</p>
 </footer>
 
+<script src="site-data.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
