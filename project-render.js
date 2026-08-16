@@ -134,7 +134,7 @@ function renderProject(forcedSlug) {
   const slug = forcedSlug || new URLSearchParams(window.location.search).get('slug');
   if (!slug) { renderProjectError('Project not found'); return; }
 
-  fetch(`data/projects/${slug}.json`)
+  fetch(`data/projects/${slug}.json?_=${Date.now()}`, { cache: 'no-store' })
     .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
     .then(data => {
       document.title = `${data.title} — Zita Decoopman`;

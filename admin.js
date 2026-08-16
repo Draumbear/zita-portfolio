@@ -1,8 +1,32 @@
 let gh = null;
 let siteData = null;
+let siteSha = null;        // sha of data/site.json as of last load — used to detect "someone else changed this"
 let projectsIndex = [];
 let currentDraft = null;   // project being edited in the editor panel
 let editingSlug = null;    // slug of existing project being edited, or null for "new"
+
+// Re-fetches data/projects-index.json fresh (never trusting the in-memory
+// copy, which may be stale) and returns it. Callers should merge their
+// specific change into this fresh array before writing, rather than writing
+// back their own possibly-outdated copy — every project save touches this
+// one shared file, so it's the highest-risk spot for one edit silently
+// clobbering another that landed in between.
+async function fetchFreshIndex() {
+  return await gh.getJSON('data/projects-index.json') || [];
+}
+
+// Returns true if it's safe to proceed with the write. If the remote sha no
+// longer matches what we loaded, asks the user whether to overwrite anyway.
+async function checkNotStale(path, loadedSha, whatChanged) {
+  if (!loadedSha) return true; // new file / nothing to compare against
+  const current = await gh.getFile(path);
+  if (!current || current.sha === loadedSha) return true;
+  return confirm(
+    `${whatChanged} was changed by someone else (or another tab) since you opened it.\n\n` +
+    `Click OK to save your version anyway and overwrite theirs, or Cancel to stop — ` +
+    `then re-open it to see the latest version before redoing your edit.`
+  );
+}
 
 // ---------- helpers ----------
 
@@ -115,8 +139,16 @@ async function loadAll() {
 
 // ---------- site & bio tab ----------
 
+function markSynced(elId) {
+  const el = document.getElementById(elId);
+  if (el) el.textContent = 'Last synced from GitHub: ' + new Date().toLocaleTimeString();
+}
+
 async function loadSite() {
-  siteData = await gh.getJSON('data/site.json') || {};
+  const loaded = await gh.getJSONWithSha('data/site.json');
+  siteData = loaded.data || {};
+  siteSha = loaded.sha;
+  markSynced('siteSyncStatus');
   const set = (id, val) => { document.getElementById(id).value = val || ''; };
   set('f-heroEyebrow', siteData.heroEyebrow);
   set('f-heroSub', siteData.heroSub);
@@ -178,12 +210,17 @@ document.getElementById('saveSiteBtn').addEventListener('click', (e) => {
         contactEmail: document.getElementById('f-contactEmail').value
       };
 
+      if (!await checkNotStale('data/site.json', siteSha, 'The site info')) {
+        toast('Save cancelled — reload the Site & Bio tab to see the latest version.', 'info');
+        return;
+      }
+
       await gh.putJSON('data/site.json', updated, 'Update site info via dashboard');
       siteData = updated;
       document.getElementById('f-aboutPhoto').value = '';
       document.getElementById('f-cvFile').value = '';
       await loadSite();
-      toast('Site info saved — live in about a minute.', 'ok');
+      toast('Site info saved. GitHub Pages usually rebuilds within ~1 minute.', 'ok');
     } catch (e) {
       toast('Save failed: ' + e.message, 'err');
     }
@@ -191,20 +228,33 @@ document.getElementById('saveSiteBtn').addEventListener('click', (e) => {
 });
 
 // ---------- tabs ----------
-
+// Switching to the Projects tab always re-pulls the list fresh — that's just
+// a read, so it's safe even mid-session. The Site & Bio tab is a form Zita
+// might be mid-typing in, so it's only refreshed via the explicit button
+// (auto-refreshing it could wipe out what she just typed) — the save-time
+// staleness check below is the real safety net for that one.
 document.querySelectorAll('.admin-tabs button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.admin-tabs button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
     document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+    if (btn.dataset.tab === 'projects') loadProjects();
   });
+});
+
+document.getElementById('refreshSiteBtn').addEventListener('click', (e) => {
+  withBusy(e.target, 'Refreshing…', loadSite);
+});
+document.getElementById('refreshProjectsBtn').addEventListener('click', (e) => {
+  withBusy(e.target, 'Refreshing…', loadProjects);
 });
 
 // ---------- projects list ----------
 
 async function loadProjects() {
-  projectsIndex = await gh.getJSON('data/projects-index.json') || [];
+  projectsIndex = await fetchFreshIndex();
+  markSynced('projectsSyncStatus');
   renderProjectLists();
 }
 
@@ -249,10 +299,17 @@ async function moveProject(slug, direction) {
   const idx = siblings.findIndex(p => p.slug === slug);
   const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
   if (swapIdx < 0 || swapIdx >= siblings.length) return;
-  const a = siblings[idx], b = siblings[swapIdx];
-  const tmp = a.order; a.order = b.order; b.order = tmp;
+  const otherSlug = siblings[swapIdx].slug;
   try {
-    await gh.putJSON('data/projects-index.json', projectsIndex, `Reorder projects`);
+    // Apply the swap on a freshly-fetched index, not our possibly-stale
+    // in-memory copy, so a concurrent edit to some other project isn't lost.
+    const fresh = await fetchFreshIndex();
+    const a = fresh.find(p => p.slug === slug);
+    const b = fresh.find(p => p.slug === otherSlug);
+    if (!a || !b) { toast('That project changed elsewhere — refreshing the list.', 'info'); await loadProjects(); return; }
+    const tmp = a.order; a.order = b.order; b.order = tmp;
+    await gh.putJSON('data/projects-index.json', fresh, `Reorder projects`);
+    projectsIndex = fresh;
     renderProjectLists();
   } catch (e) {
     toast('Reorder failed: ' + e.message, 'err');
@@ -298,10 +355,16 @@ async function openEditor(slug, groupForNew) {
   editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   if (slug) {
+    // Re-pull the index fresh so we open with the true latest card details
+    // (title/thumbnail/order), not whatever was in memory from page-load.
+    projectsIndex = await fetchFreshIndex();
     const entry = projectsIndex.find(p => p.slug === slug);
-    currentDraft = { ...entry, thumbnailFile: null };
+    if (!entry) { toast('That project no longer exists — it may have been deleted elsewhere.', 'err'); editor.classList.add('hidden'); renderProjectLists(); return; }
+    currentDraft = { ...entry, thumbnailFile: null, _detailSha: null };
     if (entry.contentType !== 'legacy') {
-      const detail = await gh.getJSON(`data/projects/${slug}.json`) || { blocks: [] };
+      const loaded = await gh.getJSONWithSha(`data/projects/${slug}.json`);
+      const detail = loaded.data || { blocks: [] };
+      currentDraft._detailSha = loaded.sha;
       currentDraft.eyebrow = detail.eyebrow || '';
       currentDraft.metaLine = (detail.meta || []).join(' · ');
       currentDraft.blocks = detail.blocks && detail.blocks.length ? detail.blocks : [blankBlock('title')];
@@ -556,6 +619,13 @@ async function saveProject() {
     currentDraft.slug = slug;
 
     if (currentDraft.contentType !== 'legacy') {
+      // If we're editing an existing project, make sure nobody else's edit
+      // landed since we opened it before we overwrite the file.
+      if (editingSlug) {
+        const proceed = await checkNotStale(`data/projects/${slug}.json`, currentDraft._detailSha, `"${currentDraft.title}"`);
+        if (!proceed) { toast('Save cancelled — reopen this project to see the latest version.', 'info'); return; }
+      }
+
       // upload any pending files for this project's blocks (including
       // items nested inside a group block)
       for (const block of currentDraft.blocks) {
@@ -584,13 +654,18 @@ async function saveProject() {
       contentType: currentDraft.contentType,
       thumbnail: currentDraft.thumbnail || {}
     };
-    const existingIdx = projectsIndex.findIndex(p => p.slug === slug);
-    if (existingIdx >= 0) projectsIndex[existingIdx] = indexEntry;
-    else projectsIndex.push(indexEntry);
+    // Merge into a freshly-fetched index rather than writing back our own
+    // possibly-stale in-memory copy, so an edit made to some other project
+    // in between isn't lost.
+    const freshIndex = await fetchFreshIndex();
+    const existingIdx = freshIndex.findIndex(p => p.slug === slug);
+    if (existingIdx >= 0) freshIndex[existingIdx] = indexEntry;
+    else freshIndex.push(indexEntry);
 
-    await gh.putJSON('data/projects-index.json', projectsIndex, `Save project: ${currentDraft.title}`);
+    await gh.putJSON('data/projects-index.json', freshIndex, `Save project: ${currentDraft.title}`);
+    projectsIndex = freshIndex;
 
-    toast('Project saved — live in about a minute.', 'ok');
+    toast('Project saved. GitHub Pages usually rebuilds within ~1 minute.', 'ok');
     document.getElementById('projectEditor').classList.add('hidden');
     currentDraft = null; editingSlug = null;
     renderProjectLists();
@@ -603,16 +678,18 @@ document.getElementById('deleteProjectBtn').addEventListener('click', async () =
   if (!currentDraft || !currentDraft.slug) return;
   if (!confirm(`Delete "${currentDraft.title}"? This removes it from the homepage. Its page file (if custom-built) is not deleted.`)) return;
   try {
-    const deletedEntry = projectsIndex.find(p => p.slug === currentDraft.slug);
+    const freshBefore = await fetchFreshIndex();
+    const deletedEntry = freshBefore.find(p => p.slug === currentDraft.slug);
     const deletedDetail = currentDraft.contentType !== 'legacy'
       ? await gh.getJSON(`data/projects/${currentDraft.slug}.json`)
       : null;
 
-    projectsIndex = projectsIndex.filter(p => p.slug !== currentDraft.slug);
+    const afterDelete = freshBefore.filter(p => p.slug !== currentDraft.slug);
     if (currentDraft.contentType !== 'legacy') {
       await gh.deleteFile(`data/projects/${currentDraft.slug}.json`, `Delete project: ${currentDraft.title}`);
     }
-    await gh.putJSON('data/projects-index.json', projectsIndex, `Delete project: ${currentDraft.title}`);
+    await gh.putJSON('data/projects-index.json', afterDelete, `Delete project: ${currentDraft.title}`);
+    projectsIndex = afterDelete;
 
     document.getElementById('projectEditor').classList.add('hidden');
     currentDraft = null; editingSlug = null;
@@ -623,8 +700,10 @@ document.getElementById('deleteProjectBtn').addEventListener('click', async () =
       onClick: async () => {
         try {
           if (deletedDetail) await gh.putJSON(`data/projects/${deletedEntry.slug}.json`, deletedDetail, `Restore project: ${deletedEntry.title}`);
-          projectsIndex.push(deletedEntry);
-          await gh.putJSON('data/projects-index.json', projectsIndex, `Restore project: ${deletedEntry.title}`);
+          const freshNow = await fetchFreshIndex();
+          freshNow.push(deletedEntry);
+          await gh.putJSON('data/projects-index.json', freshNow, `Restore project: ${deletedEntry.title}`);
+          projectsIndex = freshNow;
           renderProjectLists();
           toast('Project restored.', 'ok');
         } catch (e) {

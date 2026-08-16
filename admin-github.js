@@ -45,8 +45,12 @@ class GitHubAPI {
   }
 
   // Returns { content: string, sha: string } or null if the file doesn't exist.
+  // cache:'no-store' + a cache-busting param so this always reflects the true
+  // current state of the file, never a browser-cached copy from earlier in
+  // the session — that staleness is what causes accidental overwrites.
   async getFile(path) {
-    const res = await fetch(`${this.base}/contents/${encodeURI(path)}?ref=${this.branch}`, { headers: this.headers() });
+    const url = `${this.base}/contents/${encodeURI(path)}?ref=${this.branch}&_=${Date.now()}`;
+    const res = await fetch(url, { headers: this.headers(), cache: 'no-store' });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Failed to read ${path} (${res.status})`);
     const data = await res.json();
@@ -56,6 +60,13 @@ class GitHubAPI {
   async getJSON(path) {
     const file = await this.getFile(path);
     return file ? JSON.parse(file.content) : null;
+  }
+
+  // Like getJSON, but also returns the file's current sha so callers can
+  // detect "this changed since I loaded it" before overwriting.
+  async getJSONWithSha(path) {
+    const file = await this.getFile(path);
+    return file ? { data: JSON.parse(file.content), sha: file.sha } : { data: null, sha: null };
   }
 
   // content: raw string (text) or { base64: '...' } for binary uploads.

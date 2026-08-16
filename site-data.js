@@ -14,7 +14,7 @@ function cardHTML(project) {
     </a>`;
 }
 
-fetch('data/site.json')
+fetch('data/site.json?_=' + Date.now(), { cache: 'no-store' })
   .then(r => r.ok ? r.json() : null)
   .then(site => {
     if (!site) return;
@@ -54,7 +54,7 @@ fetch('data/site.json')
   })
   .catch(() => {});
 
-fetch('data/projects-index.json')
+fetch('data/projects-index.json?_=' + Date.now(), { cache: 'no-store' })
   .then(r => r.ok ? r.json() : null)
   .then(projects => {
     if (!Array.isArray(projects)) return;
