@@ -126,6 +126,9 @@ body.admin-body {
   bottom: 1.5rem;
   right: 1.5rem;
   z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
   padding: 0.8rem 1.2rem;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -135,6 +138,21 @@ body.admin-body {
 .toast.ok { background: #1e8a3a; color: #fff; }
 .toast.err { background: var(--a-danger); color: #fff; }
 .toast.info { background: var(--a-ink); color: #fff; }
+.toast-action {
+  flex-shrink: 0;
+  margin-left: auto;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.toast-action:hover { background: rgba(255,255,255,0.3); }
 
 /* Projects list */
 .project-row {

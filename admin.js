@@ -6,12 +6,34 @@ let editingSlug = null;    // slug of existing project being edited, or null for
 
 // ---------- helpers ----------
 
-function toast(message, type = 'info') {
+function toast(message, type = 'info', action) {
   const el = document.createElement('div');
   el.className = `toast ${type}`;
   el.textContent = message;
+  if (action) {
+    const btn = document.createElement('button');
+    btn.textContent = action.label;
+    btn.className = 'toast-action';
+    btn.addEventListener('click', () => { action.onClick(); el.remove(); });
+    el.appendChild(btn);
+  }
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 4200);
+  const timeout = action ? 8000 : 4200;
+  const timer = setTimeout(() => el.remove(), timeout);
+  el.addEventListener('click', (e) => { if (e.target === el) { clearTimeout(timer); el.remove(); } });
+}
+
+// Clones a block/draft structure for undo snapshots while preserving File
+// object references (they can't survive JSON.stringify/parse).
+function cloneForUndo(node) {
+  if (Array.isArray(node)) return node.map(cloneForUndo);
+  if (node instanceof File) return node;
+  if (node && typeof node === 'object') {
+    const copy = {};
+    for (const k in node) copy[k] = cloneForUndo(node[k]);
+    return copy;
+  }
+  return node;
 }
 
 function slugify(str) {
@@ -461,15 +483,31 @@ document.getElementById('pe-blocks').addEventListener('click', (e) => {
   const imgi = btn.dataset.imgi !== undefined ? +btn.dataset.imgi : null;
 
   if (action === 'removeGalleryImage') {
+    if (!confirm('Remove this image?')) return;
+    const beforeBlocks = cloneForUndo(currentDraft.blocks);
     resolveContainer(i, gi)[resolveIndex(i, gi)].images.splice(imgi, 1);
     renderBlocks();
+    toast('Image removed.', 'info', {
+      label: 'Undo',
+      onClick: () => { currentDraft.blocks = beforeBlocks; renderBlocks(); }
+    });
     return;
   }
 
   const container = resolveContainer(i, gi);
   const idx = resolveIndex(i, gi);
 
-  if (action === 'removeBlock') { container.splice(idx, 1); renderBlocks(); }
+  if (action === 'removeBlock') {
+    const label = BLOCK_LABELS[container[idx].type] || 'block';
+    if (!confirm(`Remove this ${label} block?`)) return;
+    const beforeBlocks = cloneForUndo(currentDraft.blocks);
+    container.splice(idx, 1);
+    renderBlocks();
+    toast(`${label} removed.`, 'info', {
+      label: 'Undo',
+      onClick: () => { currentDraft.blocks = beforeBlocks; renderBlocks(); }
+    });
+  }
   if (action === 'moveUp' && idx > 0) { swap(container, idx, idx - 1); renderBlocks(); }
   if (action === 'moveDown' && idx < container.length - 1) { swap(container, idx, idx + 1); renderBlocks(); }
 });
@@ -565,15 +603,35 @@ document.getElementById('deleteProjectBtn').addEventListener('click', async () =
   if (!currentDraft || !currentDraft.slug) return;
   if (!confirm(`Delete "${currentDraft.title}"? This removes it from the homepage. Its page file (if custom-built) is not deleted.`)) return;
   try {
+    const deletedEntry = projectsIndex.find(p => p.slug === currentDraft.slug);
+    const deletedDetail = currentDraft.contentType !== 'legacy'
+      ? await gh.getJSON(`data/projects/${currentDraft.slug}.json`)
+      : null;
+
     projectsIndex = projectsIndex.filter(p => p.slug !== currentDraft.slug);
     if (currentDraft.contentType !== 'legacy') {
       await gh.deleteFile(`data/projects/${currentDraft.slug}.json`, `Delete project: ${currentDraft.title}`);
     }
     await gh.putJSON('data/projects-index.json', projectsIndex, `Delete project: ${currentDraft.title}`);
-    toast('Project deleted.', 'ok');
+
     document.getElementById('projectEditor').classList.add('hidden');
     currentDraft = null; editingSlug = null;
     renderProjectLists();
+
+    toast('Project deleted.', 'ok', {
+      label: 'Undo',
+      onClick: async () => {
+        try {
+          if (deletedDetail) await gh.putJSON(`data/projects/${deletedEntry.slug}.json`, deletedDetail, `Restore project: ${deletedEntry.title}`);
+          projectsIndex.push(deletedEntry);
+          await gh.putJSON('data/projects-index.json', projectsIndex, `Restore project: ${deletedEntry.title}`);
+          renderProjectLists();
+          toast('Project restored.', 'ok');
+        } catch (e) {
+          toast('Restore failed: ' + e.message, 'err');
+        }
+      }
+    });
   } catch (e) {
     toast('Delete failed: ' + e.message, 'err');
   }
