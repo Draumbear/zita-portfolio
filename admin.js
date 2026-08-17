@@ -938,12 +938,12 @@ function galleryColumnsIcon(value) {
   return `<span class="layout-icon">${Array.from({ length: n }).map(() => `<span class="${cell}"></span>`).join('')}</span>`;
 }
 function blockSizeIcon(size) {
-  const d = { small: '11px', medium: '17px', large: '23px' }[size];
+  const d = { tiny: '7px', small: '11px', medium: '17px', large: '23px' }[size];
   return `<span class="layout-icon size-icon"><span class="li-media" style="width:${d}; height:${d};"></span></span>`;
 }
 function blockSizePickerHTML(block, attrs) {
   const current = block.size || 'medium';
-  const options = ['small', 'medium', 'large'].map(v => ({
+  const options = ['tiny', 'small', 'medium', 'large'].map(v => ({
     value: v, label: v[0].toUpperCase() + v.slice(1), icon: blockSizeIcon(v)
   }));
   return `<label class="hint" style="display:block; margin-top:0.4rem;">Size on the page</label>${layoutPickerHTML('blockSize', attrs, options, current)}`;
@@ -1443,6 +1443,12 @@ async function checkProjectAutosave() {
     clearAutosave(AUTOSAVE_PROJECT_KEY);
     return;
   }
+
+  // The Projects tab starts hidden (Site & Bio is the default active tab),
+  // so without switching to it first, openEditor() below would open the
+  // editor "behind" a hidden tab — invisible until she happened to click
+  // over to Projects herself with no clue the recovery even happened.
+  document.querySelector('.admin-tabs [data-tab="projects"]').click();
 
   // Open against the true server baseline first (this also sets up
   // _originalPaths correctly for orphan cleanup), then overlay the recovered

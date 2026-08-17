@@ -116,8 +116,8 @@ function blockHTML(block) {
         ? `<img src="${escapeHTML(block.coverSrc)}" alt="" loading="lazy">`
         : `<span class="file-icon">📄</span>`;
       const sizeMap = block.coverSrc
-        ? { small: '220px', medium: '320px', large: '480px' }
-        : { small: '260px', medium: '420px', large: '600px' };
+        ? { tiny: '140px', small: '220px', medium: '320px', large: '480px' }
+        : { tiny: '160px', small: '260px', medium: '420px', large: '600px' };
       const maxW = sizeMap[block.size] || sizeMap.medium;
       return `<a class="file-block${block.coverSrc ? ' file-block--cover' : ''} reveal" href="${escapeHTML(block.src)}" target="_blank" rel="noopener" style="max-width:${maxW};">
         ${preview}
@@ -128,7 +128,7 @@ function blockHTML(block) {
       </a>`;
     }
     case 'picture': {
-      const sizeMap = { small: '360px', medium: '600px', large: '900px' };
+      const sizeMap = { tiny: '200px', small: '360px', medium: '600px', large: '900px' };
       const maxW = sizeMap[block.size] || sizeMap.medium;
       return `<div class="reveal" style="max-width:${maxW}; margin: 0 auto 1.4rem;">
         <img src="${escapeHTML(block.src)}" alt="${escapeHTML(block.alt || '')}" loading="lazy" class="lightbox-img" style="width:100%; height:auto; border:1px solid var(--line); cursor:zoom-in;">

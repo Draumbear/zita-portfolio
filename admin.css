@@ -390,21 +390,30 @@ body.admin-body {
    mid-save could otherwise corrupt the in-flight write. */
 #projectEditor.pe-saving { pointer-events: none; opacity: 0.65; transition: opacity 0.15s; }
 
-/* Stays pinned to the bottom of the viewport while scrolling a long block
-   list, so Save/Preview/Cancel/Delete and Make Group never require scrolling
-   back up or down to reach. */
+/* Fixed (not sticky) to the bottom of the viewport, so Save/Preview/Cancel/
+   Delete and Make Group are visible no matter where in a long block list
+   you've scrolled to — sticky only pins once you've scrolled near its own
+   position in the document, which doesn't help while selecting blocks near
+   the TOP of a long project. #projectEditor reserves bottom padding (below)
+   so this doesn't cover the last blocks in the list. */
 .pe-action-bar {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
-  z-index: 15;
+  z-index: 50;
   display: flex;
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
-  margin-top: 1.4rem;
-  padding: 0.8rem 1rem;
+  padding: 0.8rem 1.6rem;
+  max-width: 960px;
+  margin: 0 auto;
   background: #fff;
   border-top: 1px solid var(--a-line);
+  border-left: 1px solid var(--a-line);
+  border-right: 1px solid var(--a-line);
   box-shadow: 0 -4px 12px rgba(23,21,46,0.1);
 }
+#projectEditor { padding-bottom: 4.5rem; }
 .pe-action-spacer { flex: 1; }
