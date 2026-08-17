@@ -296,6 +296,29 @@ async function loadAll() {
 
 // ---------- site & bio tab ----------
 
+const ACCENT_DEFAULT = '#1a01ff';
+
+function setAccentInputs(hex) {
+  const clean = /^#[0-9a-fA-F]{6}$/.test(hex || '') ? hex : ACCENT_DEFAULT;
+  document.getElementById('f-accentColor').value = clean;
+  document.getElementById('f-accentColorHex').value = clean;
+}
+// Color <input type=color> and its paired hex text field stay in sync either
+// direction; the hex field also accepts a pasted value without a picker.
+document.getElementById('f-accentColor').addEventListener('input', (e) => {
+  document.getElementById('f-accentColorHex').value = e.target.value;
+  siteDirty = true; autosaveSite();
+});
+document.getElementById('f-accentColorHex').addEventListener('input', (e) => {
+  const v = e.target.value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) document.getElementById('f-accentColor').value = v;
+  siteDirty = true; autosaveSite();
+});
+document.getElementById('resetAccentBtn').addEventListener('click', () => {
+  setAccentInputs(ACCENT_DEFAULT);
+  siteDirty = true; autosaveSite();
+});
+
 function markSynced(elId) {
   const el = document.getElementById(elId);
   if (el) el.textContent = 'Last synced from GitHub: ' + new Date().toLocaleTimeString();
@@ -307,6 +330,7 @@ async function loadSite() {
   siteSha = loaded.sha;
   markSynced('siteSyncStatus');
   const set = (id, val) => { document.getElementById(id).value = val || ''; };
+  setAccentInputs(siteData.accentColor);
   set('f-heroEyebrow', siteData.heroEyebrow);
   set('f-heroSub', siteData.heroSub);
   set('f-heroName', (siteData.heroName || '').replace(/<br>/g, '\n'));
@@ -327,6 +351,7 @@ async function loadSite() {
 
 const autosaveSite = debounce(() => {
   writeAutosave(AUTOSAVE_SITE_KEY, {
+    accentColor: document.getElementById('f-accentColorHex').value,
     heroEyebrow: document.getElementById('f-heroEyebrow').value,
     heroName: document.getElementById('f-heroName').value,
     heroSub: document.getElementById('f-heroSub').value,
@@ -356,6 +381,7 @@ function checkSiteAutosave() {
     return;
   }
   const set = (id, val) => { document.getElementById(id).value = val || ''; };
+  setAccentInputs(draft.accentColor);
   set('f-heroEyebrow', draft.heroEyebrow);
   set('f-heroName', draft.heroName);
   set('f-heroSub', draft.heroSub);
@@ -404,6 +430,7 @@ document.getElementById('saveSiteBtn').addEventListener('click', (e) => {
         .split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
 
       const updated = {
+        accentColor: document.getElementById('f-accentColorHex').value || ACCENT_DEFAULT,
         heroEyebrow: document.getElementById('f-heroEyebrow').value,
         heroName: document.getElementById('f-heroName').value.replace(/\n/g, '<br>'),
         heroSub: document.getElementById('f-heroSub').value,

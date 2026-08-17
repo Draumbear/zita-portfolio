@@ -169,6 +169,19 @@ a { color: var(--a-accent); }
 .admin-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 @media (max-width: 640px) { .admin-row { grid-template-columns: 1fr; } }
 
+.color-field { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.color-field input[type="color"] {
+  width: 44px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid var(--a-line);
+  border-radius: var(--a-radius-sm);
+  background: var(--a-surface);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.color-field input[type="text"] { width: auto; flex: 0 1 120px; font-family: monospace; text-transform: uppercase; }
+
 .btn-admin {
   display: inline-flex;
   align-items: center;

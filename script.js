@@ -1,5 +1,28 @@
 document.getElementById('year').textContent = new Date().getFullYear();
 
+// Site-wide accent color, set from the dashboard (data/site.json's
+// accentColor). Runs on every page (this file is shared by index.html,
+// project.html, and the legacy project pages) so a color picked once in
+// the Site & Bio tab applies everywhere without editing CSS by hand.
+// Falls back silently to styles.css's built-in --accent if unset or the
+// fetch fails (e.g. opened from disk without a server).
+function darkenHex(hex, amount) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return hex;
+  const clamp = (v) => Math.max(0, Math.min(255, v));
+  const [r, g, b] = [1, 2, 3].map(i => clamp(Math.round(parseInt(m[i], 16) * (1 - amount))));
+  return `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+}
+fetch('data/site.json?_=' + Date.now(), { cache: 'no-store' })
+  .then(r => r.ok ? r.json() : null)
+  .then(site => {
+    if (site && site.accentColor) {
+      document.documentElement.style.setProperty('--accent', site.accentColor);
+      document.documentElement.style.setProperty('--accent-dark', darkenHex(site.accentColor, 0.22));
+    }
+  })
+  .catch(() => {});
+
 // Graceful fallback for images blocked by the original host's hotlink protection
 // (delegated so it also covers cards added dynamically by site-data.js)
 document.addEventListener('error', (e) => {

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
-<link rel="stylesheet" href="admin.css?v=20260817p">
+<link rel="stylesheet" href="admin.css?v=20260817q">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <meta name="robots" content="noindex, nofollow">
@@ -77,6 +77,19 @@
         <span class="hint" id="siteSyncStatus"></span>
         <button class="btn-admin secondary small" id="refreshSiteBtn">🔄 Refresh from GitHub</button>
       </div>
+      <div class="admin-card">
+        <h2>Appearance</h2>
+        <div class="admin-field">
+          <label for="f-accentColor">Accent color (site-wide)</label>
+          <div class="color-field">
+            <input type="color" id="f-accentColor" value="#1a01ff">
+            <input type="text" id="f-accentColorHex" placeholder="#1a01ff" maxlength="7">
+            <button type="button" class="btn-admin secondary small" id="resetAccentBtn">Reset to default</button>
+          </div>
+          <p class="hint">Used for links, buttons, hover states and highlights across the whole live site — the portfolio grid, project pages, and this default color included.</p>
+        </div>
+      </div>
+
       <div class="admin-card">
         <h2>Hero</h2>
         <div class="admin-row">
@@ -270,6 +283,6 @@
      without a version bump a returning visitor can silently keep running old
      code after a deploy. -->
 <script src="admin-github.js?v=20260817o"></script>
-<script src="admin.js?v=20260817p"></script>
+<script src="admin.js?v=20260817q"></script>
 </body>
 </html>

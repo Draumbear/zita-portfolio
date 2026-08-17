@@ -23,6 +23,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Fixed header covers the top ~5.5rem of the viewport, so an anchor-linked
+   section (nav click, #hash in a URL) would otherwise land partly hidden
+   behind it. */
+section[id], .hero { scroll-margin-top: 5.5rem; }
+
+/* Subtle film-grain texture over the whole page — a cheap, static SVG noise
+   pattern (no image request), very low opacity so it reads as paper texture
+   rather than visible noise. Sits above the background, below all content. */
+.noise {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 img { max-width: 100%; display: block; }
 
 a {
@@ -257,6 +275,7 @@ h1, h2, h3, h4 {
   overflow: hidden;
   background: var(--cream-2);
   border: 1px solid var(--line);
+  transition: border-color 0.4s, box-shadow 0.4s, transform 0.4s cubic-bezier(.2,.7,.3,1);
 }
 
 .card-img img {
@@ -266,7 +285,14 @@ h1, h2, h3, h4 {
   transition: transform 0.6s cubic-bezier(.2,.7,.3,1);
 }
 
+.card:hover .card-img {
+  border-color: var(--accent);
+  box-shadow: 0 16px 40px rgba(23,21,46,0.16);
+  transform: translateY(-4px);
+}
 .card:hover .card-img img { transform: scale(1.06); }
+.card h4 { transition: color 0.3s; }
+.card:hover h4 { color: var(--accent); }
 
 .img-fallback img { display: none; }
 .img-fallback {
