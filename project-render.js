@@ -39,7 +39,7 @@ function fileExt(src) {
 // with repeat(auto-fill/auto-fit, ...) reserves invisible empty tracks for
 // column slots wider than the photo count needs, which "align" can't see
 // past to correctly position the actual visible photos.
-const GALLERY_CELL_SIZE = { auto: '240px', xs: '110px', small: '160px', medium: '220px', large: '300px' };
+const GALLERY_CELL_SIZE = { auto: '170px', xs: '80px', small: '110px', medium: '150px', large: '200px' };
 const GALLERY_JUSTIFY = { left: 'flex-start', center: 'center', right: 'flex-end' };
 const GALLERY_ALIGN_MARGIN = { left: '0 auto 0 0', center: '0 auto', right: '0 0 0 auto' };
 function galleryInnerHTML(images, block) {
