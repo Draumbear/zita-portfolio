@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
-<link rel="stylesheet" href="admin.css?v=20260817o">
+<link rel="stylesheet" href="admin.css?v=20260817p">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <meta name="robots" content="noindex, nofollow">
@@ -13,7 +13,7 @@
 
 <header class="admin-header">
   <h1>Site Dashboard</h1>
-  <div style="display:flex; align-items:center; gap:1rem;">
+  <div class="admin-header-right">
     <a href="#" id="viewLiveLink" class="hint hidden" target="_blank" rel="noopener">View live site &#8599;</a>
     <span class="conn-status off" id="connStatus">Not connected</span>
   </div>
@@ -23,13 +23,13 @@
 
   <!-- Connect panel -->
   <div id="connectPanel" class="admin-card">
-    <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;">Connect to GitHub</h2>
+    <h2>Connect to GitHub</h2>
     <p class="hint" style="margin-bottom:1.2rem;">
       This dashboard edits your portfolio by committing directly to your GitHub repo, which
       GitHub Pages then republishes automatically — usually within a minute. You'll need a
       <strong>fine-grained personal access token</strong> scoped to just this repository.
     </p>
-    <ol style="font-size:0.85rem; color:var(--a-ink-soft); padding-left:1.2rem; margin-bottom:1.4rem;">
+    <ol class="setup-steps">
       <li>Go to <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
       <li>Under "Repository access", choose <strong>Only select repositories</strong> and pick your portfolio repo</li>
       <li>Under "Permissions" → "Repository permissions", set <strong>Contents</strong> to <strong>Read and write</strong></li>
@@ -62,7 +62,7 @@
 
   <!-- Dashboard -->
   <div id="dashboard" class="hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.4rem;">
+    <div class="dashboard-toolbar">
       <div class="admin-tabs">
         <button data-tab="site" class="active">Site &amp; Bio</button>
         <button data-tab="projects">Projects</button>
@@ -73,12 +73,12 @@
 
     <!-- Site & Bio tab -->
     <section id="tab-site" class="admin-tab">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <div class="tab-toolbar">
         <span class="hint" id="siteSyncStatus"></span>
         <button class="btn-admin secondary small" id="refreshSiteBtn">🔄 Refresh from GitHub</button>
       </div>
       <div class="admin-card">
-        <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;">Hero</h2>
+        <h2>Hero</h2>
         <div class="admin-row">
           <div class="admin-field">
             <label for="f-heroEyebrow">Eyebrow text</label>
@@ -96,7 +96,7 @@
       </div>
 
       <div class="admin-card">
-        <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;">About</h2>
+        <h2>About</h2>
         <div class="admin-row">
           <div class="admin-field">
             <label for="f-aboutEyebrow">Eyebrow text</label>
@@ -125,7 +125,7 @@
       </div>
 
       <div class="admin-card">
-        <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;">CV &amp; Contact</h2>
+        <h2>CV &amp; Contact</h2>
         <div class="admin-field">
           <label for="f-cvFile">Replace CV file (PDF or Word)</label>
           <input type="file" id="f-cvFile" accept=".pdf,.doc,.docx">
@@ -148,21 +148,21 @@
 
     <!-- Projects tab -->
     <section id="tab-projects" class="admin-tab hidden">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <div class="tab-toolbar">
         <span class="hint" id="projectsSyncStatus"></span>
         <button class="btn-admin secondary small" id="refreshProjectsBtn">🔄 Refresh from GitHub</button>
       </div>
       <div class="admin-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-          <h2 style="margin:0; font-family:'Cormorant Garamond',serif;">Fashion Technology</h2>
+        <div class="admin-card-head">
+          <h2>Fashion Technology</h2>
           <button class="btn-admin small" data-add-project="fashion-technology">+ Add project</button>
         </div>
         <div id="list-fashion-technology"></div>
       </div>
 
       <div class="admin-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-          <h2 style="margin:0; font-family:'Cormorant Garamond',serif;">Personal Projects</h2>
+        <div class="admin-card-head">
+          <h2>Personal Projects</h2>
           <button class="btn-admin small" data-add-project="personal">+ Add project</button>
         </div>
         <div id="list-personal"></div>
@@ -170,8 +170,8 @@
 
       <!-- Project editor -->
       <div class="admin-card hidden" id="projectEditor">
-        <h2 style="margin-top:0; font-family:'Cormorant Garamond',serif;" id="editorTitle">Edit project</h2>
-        <p class="hint hidden" id="legacyNotice" style="background:var(--a-bg2); padding:0.8rem; border-radius:6px;">
+        <h2 id="editorTitle">Edit project</h2>
+        <p class="hint hidden notice-box" id="legacyNotice">
           This project's page was custom-built and isn't editable as blocks here. You can still update its
           card details below (title, thumbnail, order) — for content changes, ask Claude to update the page directly.
         </p>
@@ -206,7 +206,7 @@
         </div>
 
         <div id="pe-blocks-wrap" class="hidden">
-          <h3 style="font-family:'Cormorant Garamond',serif; font-weight:600;">Page content</h3>
+          <h3 class="content-heading">Page content</h3>
           <p class="hint" style="margin-bottom:1rem;">
             Build the page from standard blocks, in order. Colours and layout are applied
             automatically — a new coloured section starts each time you add a Title block.
@@ -246,7 +246,7 @@
 
     <!-- Media tab -->
     <section id="tab-media" class="admin-tab hidden">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <div class="tab-toolbar">
         <span class="hint" id="mediaSyncStatus"></span>
         <button class="btn-admin secondary small" id="refreshMediaBtn">🔄 Refresh from GitHub</button>
       </div>

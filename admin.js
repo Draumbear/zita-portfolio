@@ -655,7 +655,7 @@ function renderProjectLists() {
           ${p.contentType !== 'legacy' ? `<button class="btn-admin secondary small" data-duplicate="${p.slug}" title="Duplicate as a starting point for a new project">⧉ Duplicate</button>` : ''}
         </div>
       </div>
-    `).join('') || '<p class="hint">No projects yet.</p>';
+    `).join('') || '<p class="empty-state">No projects yet — click "+ Add project" above to create one.</p>';
   });
 }
 
