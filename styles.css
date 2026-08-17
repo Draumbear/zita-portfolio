@@ -65,41 +65,6 @@ h1, h2, h3, h4 {
 }
 
 /* Header / Nav */
-.floating-back {
-  position: fixed;
-  top: 6.5rem;
-  left: 2rem;
-  z-index: 90;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.65rem 1.1rem;
-  background: var(--cream);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-family: var(--sans);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink);
-  text-decoration: none;
-  box-shadow: 0 4px 18px rgba(23,21,46,0.14);
-  transition: background 0.25s, color 0.25s, transform 0.25s;
-}
-.floating-back:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--cream);
-  transform: translateX(-3px);
-}
-@media (max-width: 720px) {
-  .floating-back {
-    top: auto;
-    bottom: 1.2rem;
-    left: 1rem;
-  }
-}
-
 .site-header {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -118,11 +83,39 @@ h1, h2, h3, h4 {
   justify-content: space-between;
 }
 
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
 .brand {
   font-family: var(--serif);
   font-size: 1.25rem;
   letter-spacing: 0.04em;
   font-weight: 600;
+}
+
+/* Back-to-portfolio control on project pages, living in the nav bar instead
+   of floating over the page content (where it could overlap a long title). */
+.nav-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.nav-back:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--cream);
 }
 
 .nav-links {
@@ -662,6 +655,11 @@ h1, h2, h3, h4 {
 .project-gallery.cols-3 { grid-template-columns: repeat(3, 1fr); }
 .project-gallery.cols-4 { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 .project-gallery.wide { grid-template-columns: 1fr; }
+/* The stagger offset below is a transform, which doesn't add layout height —
+   without this, the shifted-down images visually overlap whatever content
+   comes right after the gallery (a caption, a paragraph). This reserves the
+   space the offset actually occupies. */
+.project-gallery.stagger { padding-bottom: 1.8rem; }
 .project-gallery.stagger > *:nth-child(even) { transform: translateY(1.8rem); }
 .project-gallery img {
   width: 100%;
@@ -788,6 +786,7 @@ h1, h2, h3, h4 {
   .split, .split--reverse { grid-template-columns: 1fr; gap: 1.6rem; }
   .split-text, .split--reverse .split-text { order: 1; }
   .split-media, .split--reverse .split-media { order: 2; }
+  .project-gallery.stagger { padding-bottom: 0; }
   .project-gallery.stagger > *:nth-child(even) { transform: none; }
   .band { padding: 3rem 1.5rem; }
 }

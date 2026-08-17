@@ -23,8 +23,13 @@ function fileExt(src) {
 // columns ('auto'|'2'|'3'|'4'), uniform (crop every photo to a consistent
 // grid cell — the default, since letting each photo's native aspect ratio
 // dictate its cell size is what produced the "random"-looking uneven grids),
-// and stagger (offset alternating photos — auto-on for 3+ photos unless
-// explicitly turned off).
+// stagger (offset alternating photos — auto-on for 3+ photos unless
+// explicitly turned off), and size (constrains the gallery's overall width —
+// the gallery equivalent of a standalone Picture's size, just on the whole
+// grid rather than one photo). Unset/'auto' keeps today's behavior of
+// filling the available band width, so existing galleries saved before this
+// control existed render unchanged.
+const GALLERY_SIZE_MAP = { xs: '420px', small: '620px', medium: '820px', large: '1040px' };
 function galleryInnerHTML(images, block) {
   const count = images.length;
   const colsOverride = block && block.columns && block.columns !== 'auto' ? parseInt(block.columns, 10) : null;
@@ -32,9 +37,11 @@ function galleryInnerHTML(images, block) {
   const stagger = (block && block.stagger === false) ? false : count > 2;
   const uniform = !(block && block.uniform === false);
   const classes = `project-gallery cols-${columns}${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
+  const maxW = block && block.size && GALLERY_SIZE_MAP[block.size];
+  const sizeStyle = maxW ? ` style="max-width:${maxW}; margin-left:auto; margin-right:auto;"` : '';
   const imgsHTML = images.map(img =>
     `<img src="${escapeHTML(img.src)}" alt="${escapeHTML(img.alt || '')}" loading="lazy" class="lightbox-img">`).join('');
-  return { html: `<div class="${classes}">${imgsHTML}</div>`, columns };
+  return { html: `<div class="${classes}"${sizeStyle}>${imgsHTML}</div>`, columns };
 }
 
 // A running counter (reset per band in bandsHTML) so consecutive auto-layout

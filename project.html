@@ -11,7 +11,7 @@
 <meta property="og:description" id="ogDescription" content="A project from Zita Decoopman's Fashion Technology portfolio.">
 <meta property="og:image" id="ogImage" content="">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="styles.css?v=20260817q">
+<link rel="stylesheet" href="styles.css?v=20260817r">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -22,7 +22,10 @@
 
 <header class="site-header">
   <nav class="nav">
-    <a class="brand" href="index.html">Zita Decoopman</a>
+    <div class="nav-left">
+      <a class="nav-back" href="index.html#portfolio" aria-label="Back to all projects" title="Back to all projects">&larr;</a>
+      <a class="brand" href="index.html">Zita Decoopman</a>
+    </div>
     <button class="nav-toggle" id="navToggle" aria-label="Toggle menu"><span></span></button>
     <ul class="nav-links" id="navLinks">
       <li><a href="index.html#top">Home</a></li>
@@ -34,8 +37,6 @@
 </header>
 
 <main>
-  <a href="index.html#portfolio" class="floating-back">&larr; All Projects</a>
-
   <section class="project-hero" id="projectHero">
     <p class="eyebrow" id="projectEyebrow"></p>
     <h1 id="projectTitle">Loading…</h1>
@@ -58,7 +59,7 @@
      copy of these same tags) whenever script.js or project-render.js changes —
      otherwise a returning visitor's browser can keep running cached old code. -->
 <script src="script.js?v=20260817q"></script>
-<script src="project-render.js?v=20260817p"></script>
+<script src="project-render.js?v=20260817q"></script>
 <script>
   if (new URLSearchParams(location.search).get('preview') === '1') {
     let data = null;
