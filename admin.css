@@ -329,7 +329,7 @@ body.admin-body {
 .layout-option-label { font-size: 0.6rem; color: var(--a-ink-soft); text-align: center; white-space: nowrap; }
 .layout-icon.size-icon { align-items: center; justify-content: center; background: var(--a-bg2); }
 .layout-icon.size-icon .li-media { flex: none; border-radius: 2px; }
-.layout-icon.align-icon { align-items: center; background: var(--a-bg2); padding: 0 4px; }
+.layout-icon.align-icon { align-items: center; justify-content: center; background: var(--a-bg2); padding: 0 4px; }
 .align-icon .align-bars { display: flex; flex-direction: column; gap: 2px; }
 .align-icon .li-media { flex: none; height: 3px; border-radius: 1px; }
 

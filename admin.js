@@ -951,9 +951,14 @@ function blockSizePickerHTML(block, attrs) {
   return `<label class="hint" style="display:block; margin-top:0.4rem;">Size on the page</label>${layoutPickerHTML('blockSize', attrs, options, current)}`;
 }
 function alignIcon(align) {
-  const justify = { left: 'flex-start', center: 'center', right: 'flex-end' }[align];
-  return `<span class="layout-icon align-icon" style="justify-content:${justify};">
-    <span class="align-bars">
+  // The three bars have different widths on purpose — align-items is what
+  // actually staggers their edges to look like left/center/right-aligned
+  // text; justify-content on the outer box alone (the previous version)
+  // only nudges the whole bars-block a couple pixels and all three options
+  // end up looking identical.
+  const alignItems = { left: 'flex-start', center: 'center', right: 'flex-end' }[align];
+  return `<span class="layout-icon align-icon">
+    <span class="align-bars" style="align-items:${alignItems};">
       <span class="li-media" style="width:24px;"></span>
       <span class="li-media" style="width:16px;"></span>
       <span class="li-media" style="width:20px;"></span>
