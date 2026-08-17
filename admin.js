@@ -464,14 +464,18 @@ document.getElementById('refreshMediaBtn').addEventListener('click', (e) => {
 
 let mediaFiles = [];
 let mediaUsage = new Map(); // repo-relative path -> [location labels]
+let externalMedia = [];     // [{ url, usedBy: [location labels] }] — images the site uses that were never uploaded through here (e.g. still hotlinked from the old Wix site)
 
 async function buildSiteWideUsageMap() {
   const usage = new Map();
+  const external = new Map();
   const addUsage = (url, label) => {
+    if (!url) return;
     const path = gh.pathFromRawUrl(url);
-    if (!path) return;
-    if (!usage.has(path)) usage.set(path, []);
-    usage.get(path).push(label);
+    const bucket = path ? usage : external;
+    const key = path || url;
+    if (!bucket.has(key)) bucket.set(key, []);
+    bucket.get(key).push(label);
   };
 
   const site = await gh.getJSON('data/site.json') || {};
@@ -487,17 +491,18 @@ async function buildSiteWideUsageMap() {
     const walk = (blocks) => {
       for (const b of blocks || []) {
         if ((b.type === 'file' || b.type === 'picture') && b.src) addUsage(b.src, `"${entry.title}"`);
+        if (b.type === 'file' && b.coverSrc) addUsage(b.coverSrc, `"${entry.title}" — file cover`);
         if (b.type === 'gallery') (b.images || []).forEach(img => addUsage(img.src, `"${entry.title}" — gallery`));
         if (b.type === 'group') walk(b.items);
       }
     };
     walk(detail.blocks);
   }
-  return usage;
+  return { usage, external };
 }
 
 async function loadMedia() {
-  const [files, usage] = await Promise.all([
+  const [files, { usage, external }] = await Promise.all([
     gh.listFolder('assets/uploads'),
     buildSiteWideUsageMap()
   ]);
@@ -505,6 +510,7 @@ async function loadMedia() {
   // the most recently uploaded files first.
   mediaFiles = files.sort((a, b) => b.name.localeCompare(a.name));
   mediaUsage = usage;
+  externalMedia = Array.from(external.entries()).map(([url, usedBy]) => ({ url, usedBy }));
   markSynced('mediaSyncStatus');
   renderMediaGrid();
 }
@@ -521,8 +527,9 @@ function formatBytes(n) {
 
 function renderMediaGrid() {
   const grid = document.getElementById('mediaGrid');
-  if (!mediaFiles.length) { grid.innerHTML = '<p class="hint">No uploads yet.</p>'; return; }
-  grid.innerHTML = mediaFiles.map(f => {
+  if (!mediaFiles.length && !externalMedia.length) { grid.innerHTML = '<p class="hint">No uploads yet.</p>'; return; }
+
+  const repoCards = mediaFiles.map(f => {
     const usedBy = mediaUsage.get(f.path);
     const preview = isImagePath(f.name)
       ? `<img src="${gh.rawUrl(f.path)}" alt="">`
@@ -542,6 +549,30 @@ function renderMediaGrid() {
       </div>
     `;
   }).join('');
+
+  // Images the site references but that were never uploaded through here —
+  // e.g. still hotlinked from the old Wix site. Shown separately: there's
+  // nothing here to delete (we don't own the file) and a forced download
+  // can't be guaranteed to work cross-origin, so this links to the original
+  // instead — open it, then save/re-upload manually to bring it in properly.
+  const externalCards = externalMedia.map(m => `
+    <div class="media-item media-item--external">
+      <img src="${m.url}" alt="" loading="lazy">
+      <div class="media-meta">
+        <span class="media-name" title="${m.url}">External image</span>
+        <span class="media-size">Not hosted in this repo</span>
+        <span class="media-usage in-use">${m.usedBy.join(', ')}</span>
+      </div>
+      <div class="media-actions">
+        <a class="btn-admin secondary small" href="${m.url}" target="_blank" rel="noopener" style="flex:1; text-align:center;">View original</a>
+      </div>
+    </div>
+  `).join('');
+
+  grid.innerHTML = `
+    ${mediaFiles.length ? `<h3 class="media-section-heading">Uploaded through this dashboard (${mediaFiles.length})</h3><div class="media-grid">${repoCards}</div>` : ''}
+    ${externalMedia.length ? `<h3 class="media-section-heading">Still hosted elsewhere (${externalMedia.length}) — download from "View original" and re-upload here to bring these into the dashboard</h3><div class="media-grid">${externalCards}</div>` : ''}
+  `;
 }
 
 document.getElementById('mediaGrid').addEventListener('click', (e) => {

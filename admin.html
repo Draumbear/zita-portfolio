@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
-<link rel="stylesheet" href="admin.css?v=20260817f">
+<link rel="stylesheet" href="admin.css?v=20260817g">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <meta name="robots" content="noindex, nofollow">
@@ -240,13 +240,15 @@
         <button class="btn-admin secondary small" id="refreshMediaBtn">🔄 Refresh from GitHub</button>
       </div>
       <p class="hint" style="margin-bottom:1rem;">
-        Every picture and file ever uploaded through this dashboard, in one place. Each one is
-        labelled with where it's currently used — or "Not used anywhere" if it's safe to delete.
-        Download a picture to move it, delete it here, then re-upload it in the right spot.
-        (Usage is only checked against dashboard-managed content — a custom-built page's own
-        hard-coded images won't show up as "in use" even if it's actually using one.)
+        Every picture and file the site actually uses, in one place — files uploaded through this
+        dashboard, and pictures still hosted elsewhere (e.g. left over from the old Wix site).
+        Each one is labelled with where it's used, or "Not used anywhere" if a dashboard-hosted
+        file is safe to delete. External pictures don't have a Delete button here (this dashboard
+        doesn't own that file) — open "View original", save it, then re-upload it here to bring it
+        in properly. (Usage is only checked against dashboard-managed content — a custom-built
+        page's own hard-coded images won't show up as "in use" even if it's actually using one.)
       </p>
-      <div id="mediaGrid" class="media-grid"></div>
+      <div id="mediaGrid"></div>
     </section>
   </div>
 
@@ -256,7 +258,7 @@
      or admin-github.js changes — browsers cache these aggressively, and
      without a version bump a returning visitor can silently keep running old
      code after a deploy. -->
-<script src="admin-github.js?v=20260817f"></script>
-<script src="admin.js?v=20260817f"></script>
+<script src="admin-github.js?v=20260817g"></script>
+<script src="admin.js?v=20260817g"></script>
 </body>
 </html>

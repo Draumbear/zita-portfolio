@@ -341,10 +341,18 @@ body.admin-body {
 }
 
 /* Media library */
+.media-section-heading {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 1.6rem 0 0.8rem;
+}
+.media-section-heading:first-child { margin-top: 0; }
 .media-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 1rem;
+  margin-bottom: 1.2rem;
 }
 .media-item {
   border: 1px solid var(--a-line);
