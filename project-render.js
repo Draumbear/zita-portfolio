@@ -43,16 +43,19 @@ let groupAlternator = 0;
 
 // `narrow`: true when this media is rendering in the side column of a
 // split (media-left/media-right) group — roughly half the page width, so a
-// gallery's own multi-column grid never fits sensibly there and always
-// stacks to one column instead. The crop-to-a-consistent-grid default exists
-// specifically to avoid raggedness across a multi-column grid's rows; with
-// only one column there's no raggedness to fix, so photos default to their
-// natural (uncropped) aspect ratio here too — unless she's explicitly turned
-// cropping/offset on for that gallery, which is still respected.
+// gallery defaults to one column there instead of its usual auto column
+// count (which never fit sensibly in that narrow a space). Explicitly
+// choosing 2+ columns on the gallery itself (e.g. for a grid) still applies
+// even here — this default only kicks in when she's left it on Automatic.
+// Same idea for the crop-to-a-consistent-grid default: it exists to avoid
+// raggedness across a multi-column grid's rows, which doesn't apply to a
+// single column, so photos default to their natural aspect ratio here too
+// unless she's explicitly turned cropping/offset on for that gallery.
 function groupMediaHTML(media, narrow) {
   if (media.type === 'gallery') {
+    const explicitColumns = media.columns && media.columns !== 'auto';
     const effectiveBlock = narrow
-      ? { ...media, columns: '1', uniform: media.uniform === true, stagger: media.stagger === true }
+      ? { ...media, columns: explicitColumns ? media.columns : '1', uniform: media.uniform === true, stagger: media.stagger === true }
       : media;
     return galleryInnerHTML(media.images || [], effectiveBlock).html;
   }
@@ -73,6 +76,11 @@ function groupHTML(block) {
     return `<div class="group-media-only reveal">${mediaItems.map(m => groupMediaHTML(m)).join('')}</div>`;
   }
 
+  // When a group has more than one separate media block (e.g. two Picture
+  // blocks, not one Gallery), they can be stacked one per row (default) or
+  // arranged in a 2-column grid instead.
+  const mediaLayoutClass = block.mediaLayout === 'grid' ? ' grid' : '';
+
   const explicitSide = layout === 'media-left' || layout === 'media-right';
   const autoSide = layout === 'auto' && mediaItems.length === 1;
   if (mediaItems.length && textItems.length && (explicitSide || autoSide)) {
@@ -80,7 +88,7 @@ function groupHTML(block) {
     const textHTML = textItems.map(blockHTML).join('');
     const mediaHTML = mediaItems.length === 1
       ? groupMediaHTML(mediaItems[0], true)
-      : `<div class="split-media-stack">${mediaItems.map(m => groupMediaHTML(m, true)).join('')}</div>`;
+      : `<div class="split-media-stack${mediaLayoutClass}">${mediaItems.map(m => groupMediaHTML(m, true)).join('')}</div>`;
     return `<div class="split${reverse ? ' split--reverse' : ''} reveal">
       <div class="split-text">${textHTML}</div>
       <div class="split-media">${mediaHTML}</div>
@@ -88,7 +96,7 @@ function groupHTML(block) {
   }
 
   if (layout === 'media-above' || layout === 'media-below') {
-    const mediaHTML = `<div class="group-media-stack">${mediaItems.map(m => groupMediaHTML(m)).join('')}</div>`;
+    const mediaHTML = `<div class="group-media-stack${mediaLayoutClass}">${mediaItems.map(m => groupMediaHTML(m)).join('')}</div>`;
     const textHTML = textItems.map(blockHTML).join('');
     const ordered = layout === 'media-above' ? mediaHTML + textHTML : textHTML + mediaHTML;
     return `<div class="content-group reveal">${ordered}</div>`;
@@ -103,9 +111,9 @@ function groupHTML(block) {
 function blockHTML(block) {
   switch (block.type) {
     case 'title':
-      return `<h2 class="reveal">${escapeHTML(block.text)}</h2>`;
+      return `<h2 class="reveal" style="text-align:${block.align || 'left'};">${escapeHTML(block.text)}</h2>`;
     case 'subtitle':
-      return `<h3 class="reveal">${escapeHTML(block.text)}</h3>`;
+      return `<h3 class="reveal" style="text-align:${block.align || 'left'};">${escapeHTML(block.text)}</h3>`;
     case 'paragraph':
       return `<p class="reveal">${block.text || ''}</p>`;
     case 'file': {
@@ -116,8 +124,8 @@ function blockHTML(block) {
         ? `<img src="${escapeHTML(block.coverSrc)}" alt="" loading="lazy">`
         : `<span class="file-icon">📄</span>`;
       const sizeMap = block.coverSrc
-        ? { tiny: '140px', small: '220px', medium: '320px', large: '480px' }
-        : { tiny: '160px', small: '260px', medium: '420px', large: '600px' };
+        ? { xs: '130px', small: '180px', medium: '260px', large: '340px', xlarge: '480px' }
+        : { xs: '150px', small: '200px', medium: '300px', large: '420px', xlarge: '600px' };
       const maxW = sizeMap[block.size] || sizeMap.medium;
       return `<a class="file-block${block.coverSrc ? ' file-block--cover' : ''} reveal" href="${escapeHTML(block.src)}" target="_blank" rel="noopener" style="max-width:${maxW};">
         ${preview}
@@ -128,7 +136,7 @@ function blockHTML(block) {
       </a>`;
     }
     case 'picture': {
-      const sizeMap = { tiny: '200px', small: '360px', medium: '600px', large: '900px' };
+      const sizeMap = { xs: '180px', small: '280px', medium: '420px', large: '600px', xlarge: '900px' };
       const maxW = sizeMap[block.size] || sizeMap.medium;
       return `<div class="reveal" style="max-width:${maxW}; margin: 0 auto 1.4rem;">
         <img src="${escapeHTML(block.src)}" alt="${escapeHTML(block.alt || '')}" loading="lazy" class="lightbox-img" style="width:100%; height:auto; border:1px solid var(--line); cursor:zoom-in;">
@@ -164,7 +172,7 @@ function groupIntoBands(blocks) {
 
 function bandNeedsWide(items) {
   return items.some(b => b.type === 'gallery' || b.type === 'group' ||
-    ((b.type === 'picture' || b.type === 'file') && b.size === 'large'));
+    ((b.type === 'picture' || b.type === 'file') && (b.size === 'large' || b.size === 'xlarge')));
 }
 
 function bandsHTML(blocks) {

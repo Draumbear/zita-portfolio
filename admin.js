@@ -836,6 +836,7 @@ function renderEditor() {
   document.getElementById('pe-meta').closest('.admin-field').classList.toggle('hidden', legacy);
   document.getElementById('pe-blocks-wrap').classList.toggle('hidden', legacy);
   document.getElementById('previewProjectBtn').classList.toggle('hidden', legacy);
+  document.getElementById('previewMobileBtn').classList.toggle('hidden', legacy);
   document.getElementById('groupSelectionControls').classList.toggle('hidden', legacy);
   document.getElementById('deleteProjectBtn').style.display = currentDraft.slug ? '' : 'none';
 
@@ -937,16 +938,38 @@ function galleryColumnsIcon(value) {
   const cell = value === 'auto' ? 'li-text' : 'li-media';
   return `<span class="layout-icon">${Array.from({ length: n }).map(() => `<span class="${cell}"></span>`).join('')}</span>`;
 }
+const BLOCK_SIZE_LABELS = { xs: 'XS', small: 'Small', medium: 'Medium', large: 'Large', xlarge: 'XL' };
 function blockSizeIcon(size) {
-  const d = { tiny: '7px', small: '11px', medium: '17px', large: '23px' }[size];
+  const d = { xs: '6px', small: '10px', medium: '15px', large: '20px', xlarge: '25px' }[size];
   return `<span class="layout-icon size-icon"><span class="li-media" style="width:${d}; height:${d};"></span></span>`;
 }
 function blockSizePickerHTML(block, attrs) {
   const current = block.size || 'medium';
-  const options = ['tiny', 'small', 'medium', 'large'].map(v => ({
-    value: v, label: v[0].toUpperCase() + v.slice(1), icon: blockSizeIcon(v)
+  const options = ['xs', 'small', 'medium', 'large', 'xlarge'].map(v => ({
+    value: v, label: BLOCK_SIZE_LABELS[v], icon: blockSizeIcon(v)
   }));
   return `<label class="hint" style="display:block; margin-top:0.4rem;">Size on the page</label>${layoutPickerHTML('blockSize', attrs, options, current)}`;
+}
+function alignIcon(align) {
+  const justify = { left: 'flex-start', center: 'center', right: 'flex-end' }[align];
+  return `<span class="layout-icon align-icon" style="justify-content:${justify};">
+    <span class="align-bars">
+      <span class="li-media" style="width:24px;"></span>
+      <span class="li-media" style="width:16px;"></span>
+      <span class="li-media" style="width:20px;"></span>
+    </span>
+  </span>`;
+}
+function alignPickerHTML(block, attrs) {
+  const current = block.align || 'left';
+  const options = ['left', 'center', 'right'].map(v => ({
+    value: v, label: v[0].toUpperCase() + v.slice(1), icon: alignIcon(v)
+  }));
+  return `<label class="hint" style="display:block; margin-top:0.4rem;">Alignment</label>${layoutPickerHTML('blockAlign', attrs, options, current)}`;
+}
+function mediaLayoutIcon(kind) {
+  if (kind === 'grid') return `<span class="layout-icon"><span class="li-media"></span><span class="li-media"></span><span class="li-media"></span><span class="li-media"></span></span>`;
+  return `<span class="layout-icon vertical"><span class="li-media"></span><span class="li-media"></span></span>`;
 }
 
 // Checkbox for the "select blocks, then Make Group" flow — only top-level
@@ -984,9 +1007,13 @@ function blockEditorHTML(block, i, gi) {
       </div>
       <p class="hint" style="margin:0.2rem 0 0;">${hasCustom ? 'Custom colors — this section starts a new title, so this also colors everything until the next one.' : 'This title starts a new section — leave the colors as-is to use the automatic alternating pattern, or set your own above.'}</p>
       ${lowContrast ? `<p class="hint" style="color:var(--a-danger); margin:0.2rem 0 0;">⚠ Low contrast — this text may be hard to read on this background.</p>` : ''}
+      ${alignPickerHTML(block, attrs)}
     `;
   } else if (block.type === 'subtitle') {
-    fields = `<input type="text" placeholder="Subtitle text" value="${(block.text || '').replace(/"/g, '&quot;')}" data-action="text" ${attrs}>`;
+    fields = `
+      <input type="text" placeholder="Subtitle text" value="${(block.text || '').replace(/"/g, '&quot;')}" data-action="text" ${attrs}>
+      ${alignPickerHTML(block, attrs)}
+    `;
   } else if (block.type === 'paragraph') {
     fields = `<textarea placeholder="Paragraph text" data-action="text" ${attrs} rows="3">${block.text || ''}</textarea>`;
   } else if (block.type === 'file') {
@@ -1049,9 +1076,15 @@ function blockEditorHTML(block, i, gi) {
       { value: 'media-above', label: 'Media above', icon: groupLayoutIcon('media-above') },
       { value: 'media-below', label: 'Media below', icon: groupLayoutIcon('media-below') }
     ];
+    const mediaCount = items.filter(it => ['picture', 'gallery', 'file'].includes(it.type)).length;
+    const mediaLayoutOptions = [
+      { value: 'stack', label: 'Stacked', icon: mediaLayoutIcon('stack') },
+      { value: 'grid', label: 'Grid', icon: mediaLayoutIcon('grid') }
+    ];
     fields = `
       <label class="hint" style="display:block; margin-bottom:0.3rem;">Layout</label>
       ${layoutPickerHTML('groupLayout', attrs, layoutOptions, currentLayout)}
+      ${mediaCount > 1 ? `<label class="hint" style="display:block; margin:0.5rem 0 0.3rem;">Multiple media arrangement</label>${layoutPickerHTML('groupMediaLayout', attrs, mediaLayoutOptions, block.mediaLayout || 'stack')}` : ''}
       <p class="group-hint">Text + one picture, gallery or file will be laid out side by side automatically; anything more is bound together in a bordered card — pick a layout above to control this yourself. Media with no text next to it is centered on its own instead of stretched into a card. Drag an existing block here (by its ⋮⋮ handle) to move it into this group.</p>
       <div class="group-items" data-i="${i}">
         ${items.map((sub, subI) => blockEditorHTML(sub, i, subI)).join('') || '<p class="hint">Empty — drag a block here, or add one below.</p>'}
@@ -1227,11 +1260,13 @@ document.getElementById('pe-blocks').addEventListener('click', (e) => {
     return;
   }
 
-  if (action === 'groupLayout' || action === 'galleryColumns' || action === 'blockSize') {
+  if (action === 'groupLayout' || action === 'galleryColumns' || action === 'blockSize' || action === 'blockAlign' || action === 'groupMediaLayout') {
     const block = resolveContainer(i, gi)[resolveIndex(i, gi)];
     if (action === 'groupLayout') block.layout = btn.dataset.value;
     else if (action === 'galleryColumns') block.columns = btn.dataset.value;
-    else block.size = btn.dataset.value;
+    else if (action === 'blockSize') block.size = btn.dataset.value;
+    else if (action === 'blockAlign') block.align = btn.dataset.value;
+    else block.mediaLayout = btn.dataset.value;
     renderBlocks();
     projectDirty = true; autosaveProject();
     return;
@@ -1523,20 +1558,38 @@ async function buildPreviewBlocks(blocks) {
   return out;
 }
 
+async function storePreviewDraft() {
+  const title = document.getElementById('pe-title').value.trim() || currentDraft.title || 'Untitled';
+  const eyebrow = document.getElementById('pe-eyebrow').value.trim();
+  const metaLine = document.getElementById('pe-meta').value.trim();
+  const previewData = {
+    title, eyebrow,
+    meta: metaLine ? metaLine.split('·').map(s => s.trim()).filter(Boolean) : [],
+    blocks: await buildPreviewBlocks(currentDraft.blocks)
+  };
+  sessionStorage.setItem('zita-preview-draft', JSON.stringify(previewData));
+}
+
 document.getElementById('previewProjectBtn').addEventListener('click', async (e) => {
   if (!currentDraft || currentDraft.contentType === 'legacy') return;
   withBusy(e.target, 'Preparing preview…', async () => {
     try {
-      const title = document.getElementById('pe-title').value.trim() || currentDraft.title || 'Untitled';
-      const eyebrow = document.getElementById('pe-eyebrow').value.trim();
-      const metaLine = document.getElementById('pe-meta').value.trim();
-      const previewData = {
-        title, eyebrow,
-        meta: metaLine ? metaLine.split('·').map(s => s.trim()).filter(Boolean) : [],
-        blocks: await buildPreviewBlocks(currentDraft.blocks)
-      };
-      sessionStorage.setItem('zita-preview-draft', JSON.stringify(previewData));
+      await storePreviewDraft();
       window.open('project.html?preview=1', '_blank');
+    } catch (e2) {
+      toast('Could not open preview: ' + e2.message, 'err');
+    }
+  });
+});
+
+document.getElementById('previewMobileBtn').addEventListener('click', async (e) => {
+  if (!currentDraft || currentDraft.contentType === 'legacy') return;
+  withBusy(e.target, 'Preparing preview…', async () => {
+    try {
+      await storePreviewDraft();
+      // A real popup window (not a tab) sized like a phone, so the page's own
+      // responsive CSS renders the mobile layout instead of the desktop one.
+      window.open('project.html?preview=1', 'zita-mobile-preview', 'width=390,height=844,menubar=no,toolbar=no,location=no,status=no');
     } catch (e2) {
       toast('Could not open preview: ' + e2.message, 'err');
     }

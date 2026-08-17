@@ -547,9 +547,15 @@ h1, h2, h3, h4 {
 .group-media-only > *:not(:last-child) { margin-bottom: 1.4rem; }
 
 /* Multiple media items sharing one side of a split, or stacked above/below
-   the text (explicit group layout choices). */
+   the text (explicit group layout choices). ".grid" arranges them 2-up
+   instead of one per row. */
 .split-media-stack, .group-media-stack { display: flex; flex-direction: column; gap: 1.4rem; }
 .group-media-stack { margin-bottom: 1.4rem; }
+.split-media-stack.grid, .group-media-stack.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: start;
+}
 
 /* Alternating background bands */
 .band {
