@@ -232,6 +232,9 @@ body.admin-body {
   margin-bottom: 0.6rem;
 }
 .content-item-fields { display: flex; flex-direction: column; gap: 0.5rem; }
+.picture-drag-thumb { cursor: grab; }
+.picture-drag-thumb:active { cursor: grabbing; }
+.picture-drag-thumb.dragging { opacity: 0.4; }
 .content-item-actions { display: flex; flex-direction: column; gap: 0.3rem; }
 .content-item.drag-over { outline: 2px dashed var(--a-accent); outline-offset: 2px; }
 .content-item.dragging { opacity: 0.4; }

@@ -815,7 +815,8 @@ function blockEditorHTML(block, i, gi) {
     fields = `
       <input type="file" accept="image/*" data-action="pictureUpload" ${attrs}>
       <input type="text" placeholder="Alt text" value="${(block.alt || '').replace(/"/g, '&quot;')}" data-action="alt" ${attrs}>
-      ${block.src || block._previewSrc ? `<img src="${block._previewSrc || block.src}" alt="" style="width:70px;height:90px;object-fit:cover;border-radius:4px;">` : ''}
+      ${block.src || block._previewSrc ? `<img src="${block._previewSrc || block.src}" alt="" class="picture-drag-thumb" draggable="true" ${attrs} style="width:70px;height:90px;object-fit:cover;border-radius:4px;">` : ''}
+      ${block.src || block._previewSrc ? `<p class="hint" style="margin:0.2rem 0 0;">Drag this photo into a Gallery block to move it there.</p>` : ''}
     `;
   } else if (block.type === 'gallery') {
     fields = `
@@ -1008,6 +1009,13 @@ document.getElementById('pe-blocks').addEventListener('dragstart', (e) => {
     e.dataTransfer.effectAllowed = 'move';
     return;
   }
+  const pictureThumb = e.target.closest('.picture-drag-thumb');
+  if (pictureThumb) {
+    dragState = { kind: 'picture', ...readDragAddr(pictureThumb) };
+    pictureThumb.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    return;
+  }
   const galleryItem = e.target.closest('.gallery-image-item');
   if (galleryItem) {
     dragState = { kind: 'gallery', ...readDragAddr(galleryItem), imgi: +galleryItem.dataset.imgi };
@@ -1048,6 +1056,32 @@ document.getElementById('pe-blocks').addEventListener('drop', (e) => {
     if (srcIdx === targetIdx) return;
     const [moved] = srcContainer.splice(srcIdx, 1);
     srcContainer.splice(targetIdx, 0, moved);
+  } else if (dragState.kind === 'picture') {
+    // Moves a standalone Picture block's image into a Gallery block — the
+    // picture block itself is removed (its image now lives in the gallery
+    // instead), with an Undo toast since that's a bit more destructive than
+    // a plain reorder.
+    const target = e.target.closest('.gallery-image-item, .gallery-images');
+    if (!target) return;
+    const { i: targetI, gi: targetGi } = readDragAddr(target);
+    const targetGallery = resolveContainer(targetI, targetGi)[resolveIndex(targetI, targetGi)];
+    const targetImgi = target.classList.contains('gallery-images') ? targetGallery.images.length : +target.dataset.imgi;
+
+    const srcContainer = resolveContainer(dragState.i, dragState.gi);
+    const srcIdx = resolveIndex(dragState.i, dragState.gi);
+    const pictureBlock = srcContainer[srcIdx];
+    const beforeBlocks = cloneForUndo(currentDraft.blocks);
+
+    const newImage = { src: pictureBlock.src || '', alt: pictureBlock.alt || '' };
+    if (pictureBlock._pendingFile) newImage._pendingFile = pictureBlock._pendingFile;
+    if (pictureBlock._previewSrc) newImage._previewSrc = pictureBlock._previewSrc;
+    targetGallery.images.splice(targetImgi, 0, newImage);
+    srcContainer.splice(srcIdx, 1);
+
+    toast('Picture moved into the gallery.', 'info', {
+      label: 'Undo',
+      onClick: () => { currentDraft.blocks = beforeBlocks; renderBlocks(); projectDirty = true; autosaveProject(); }
+    });
   } else {
     // Dropping on another photo inserts at that photo's position; dropping on
     // empty gallery space (including an empty gallery) appends to the end —
