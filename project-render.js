@@ -20,30 +20,49 @@ function fileExt(src) {
 }
 
 // `block` (optional) carries the dashboard's per-gallery overrides:
-// columns ('auto'|'1'..'6'), uniform (crop every photo to a consistent
-// grid cell — the default, since letting each photo's native aspect ratio
-// dictate its cell size is what produced the "random"-looking uneven grids),
-// stagger (offset alternating photos — auto-on for 3+ photos unless
-// explicitly turned off), size (constrains the gallery's overall width — the
-// gallery equivalent of a standalone Picture's size, just on the whole grid
-// rather than one photo; unset/'auto' keeps today's behavior of filling the
-// available band width), and align (left/center/right — only visible once a
-// size constraint leaves spare width to move within; defaults to center).
+// columns ('auto'|'1'..'6'), uniform (crop every photo to a consistent grid
+// cell — the default, since letting each photo's native aspect ratio dictate
+// its cell size is what produced the "random"-looking uneven grids), stagger
+// (offset alternating photos — auto-on for 3+ photos unless explicitly
+// turned off), align (left/center/right — only visible once Columns is set
+// explicitly, see below; defaults to center), and size, which means one of
+// two different things depending on Columns:
+//   - Columns explicit (1–6): size caps the whole gallery's rendered width
+//     (like a standalone Picture's size), photos then split that width N ways.
+//   - Columns 'auto' (default): size is a per-photo TARGET width instead —
+//     each photo renders at that fixed size regardless of how many photos are
+//     in this particular gallery, wrapping to more rows rather than shrinking
+//     the photos. This is what makes "Small" look the same everywhere; sizing
+//     by container width instead (as this used to work) meant two "Small"
+//     galleries with different photo counts rendered at very different
+//     per-photo scales, which just read as broken.
 const GALLERY_SIZE_MAP = { xs: '420px', small: '620px', medium: '820px', large: '1040px' };
+const GALLERY_CELL_SIZE = { auto: '240px', xs: '110px', small: '160px', medium: '220px', large: '300px' };
 const GALLERY_ALIGN_MARGIN = { left: '0 auto 0 0', center: '0 auto', right: '0 0 0 auto' };
 function galleryInnerHTML(images, block) {
   const count = images.length;
-  const colsOverride = block && block.columns && block.columns !== 'auto' ? parseInt(block.columns, 10) : null;
-  const columns = colsOverride || (count <= 2 ? 2 : count === 3 ? 3 : 4);
+  const explicitCols = block && block.columns && block.columns !== 'auto' ? parseInt(block.columns, 10) : null;
   const stagger = (block && block.stagger === false) ? false : count > 2;
   const uniform = !(block && block.uniform === false);
-  const classes = `project-gallery cols-${columns}${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
-  const maxW = block && block.size && GALLERY_SIZE_MAP[block.size];
-  const margin = GALLERY_ALIGN_MARGIN[(block && block.align) || 'center'];
-  const sizeStyle = maxW ? ` style="max-width:${maxW}; margin:${margin};"` : '';
+
+  let classes, styleAttr = '';
+  if (explicitCols) {
+    classes = `project-gallery cols-${explicitCols}${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
+    const maxW = block && block.size && GALLERY_SIZE_MAP[block.size];
+    if (maxW) {
+      const margin = GALLERY_ALIGN_MARGIN[(block && block.align) || 'center'];
+      styleAttr = ` style="max-width:${maxW}; margin:${margin};"`;
+    }
+  } else {
+    classes = `project-gallery${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
+    const cell = GALLERY_CELL_SIZE[(block && block.size) || 'auto'];
+    // Fixed track size (not minmax(...,1fr)) so photos hold their target
+    // width instead of stretching to fill a half-empty last row.
+    styleAttr = ` style="grid-template-columns:repeat(auto-fill, ${cell});"`;
+  }
   const imgsHTML = images.map(img =>
     `<img src="${escapeHTML(img.src)}" alt="${escapeHTML(img.alt || '')}" loading="lazy" class="lightbox-img">`).join('');
-  return { html: `<div class="${classes}"${sizeStyle}>${imgsHTML}</div>`, columns };
+  return { html: `<div class="${classes}"${styleAttr}>${imgsHTML}</div>` };
 }
 
 // A running counter (reset per band in bandsHTML) so consecutive auto-layout

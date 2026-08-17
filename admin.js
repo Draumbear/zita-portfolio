@@ -1027,11 +1027,14 @@ function blockSizePickerHTML(block, attrs) {
   }));
   return `<label class="hint" style="display:block; margin-top:0.4rem;">Size on the page</label>${layoutPickerHTML('blockSize', attrs, options, current)}`;
 }
-// Same idea as a standalone Picture's size, but for the gallery as a whole
-// (constrains its overall width, not each photo individually — column count
-// already controls per-photo sizing). Defaults to "Auto" (fills the band,
-// today's un-sized behavior) rather than "Medium" like Picture/File do, so
-// galleries saved before this control existed don't silently shrink.
+// With Columns left on Auto (the common case), this sets each photo's own
+// target width — not the gallery's overall width — so a "Small" gallery
+// looks the same size everywhere on the site regardless of how many photos
+// happen to be in it (photo count changes how many rows it wraps into, not
+// how big each photo is). If Columns is instead set to a specific number,
+// this switches to capping the whole gallery's rendered width — like a
+// standalone Picture's size — since column count already fixes each photo's
+// share of that width. "Auto" size keeps today's default look.
 const GALLERY_SIZE_LABELS = { auto: 'Auto', xs: 'XS', small: 'Small', medium: 'Medium', large: 'Large' };
 function gallerySizeIcon(size) {
   if (size === 'auto') return `<span class="layout-icon size-icon"><span class="li-media" style="width:25px; height:14px; border-radius:2px;"></span></span>`;
@@ -1042,7 +1045,9 @@ function gallerySizePickerHTML(block, attrs) {
   const options = ['auto', 'xs', 'small', 'medium', 'large'].map(v => ({
     value: v, label: GALLERY_SIZE_LABELS[v], icon: gallerySizeIcon(v)
   }));
-  return `<label class="hint" style="display:block; margin-top:0.4rem;">Gallery width</label>${layoutPickerHTML('blockSize', attrs, options, current)}`;
+  const columnsExplicit = block.columns && block.columns !== 'auto';
+  const label = columnsExplicit ? 'Gallery width' : 'Photo size';
+  return `<label class="hint" style="display:block; margin-top:0.4rem;">${label}</label>${layoutPickerHTML('blockSize', attrs, options, current)}`;
 }
 function alignIcon(align) {
   // The three bars have different widths on purpose — align-items is what
