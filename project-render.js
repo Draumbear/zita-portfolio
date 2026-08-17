@@ -41,8 +41,21 @@ function galleryInnerHTML(images, block) {
 // groups alternate text-left/text-right instead of all facing the same way.
 let groupAlternator = 0;
 
-function groupMediaHTML(media) {
-  if (media.type === 'gallery') return galleryInnerHTML(media.images || [], media).html;
+// `narrow`: true when this media is rendering in the side column of a
+// split (media-left/media-right) group — roughly half the page width, so a
+// gallery's own multi-column grid never fits sensibly there and always
+// stacks to one column instead. The crop-to-a-consistent-grid default exists
+// specifically to avoid raggedness across a multi-column grid's rows; with
+// only one column there's no raggedness to fix, so photos default to their
+// natural (uncropped) aspect ratio here too — unless she's explicitly turned
+// cropping/offset on for that gallery, which is still respected.
+function groupMediaHTML(media, narrow) {
+  if (media.type === 'gallery') {
+    const effectiveBlock = narrow
+      ? { ...media, columns: '1', uniform: media.uniform === true, stagger: media.stagger === true }
+      : media;
+    return galleryInnerHTML(media.images || [], effectiveBlock).html;
+  }
   return blockHTML(media);
 }
 
@@ -57,7 +70,7 @@ function groupHTML(block) {
   // bordered card, where it just sits alone on the page — render it
   // constrained/centered instead, the way a standalone block would be.
   if (mediaItems.length && textItems.length === 0) {
-    return `<div class="group-media-only reveal">${mediaItems.map(groupMediaHTML).join('')}</div>`;
+    return `<div class="group-media-only reveal">${mediaItems.map(m => groupMediaHTML(m)).join('')}</div>`;
   }
 
   const explicitSide = layout === 'media-left' || layout === 'media-right';
@@ -66,8 +79,8 @@ function groupHTML(block) {
     const reverse = layout === 'media-left' ? true : layout === 'media-right' ? false : (groupAlternator++ % 2 === 1);
     const textHTML = textItems.map(blockHTML).join('');
     const mediaHTML = mediaItems.length === 1
-      ? groupMediaHTML(mediaItems[0])
-      : `<div class="split-media-stack">${mediaItems.map(groupMediaHTML).join('')}</div>`;
+      ? groupMediaHTML(mediaItems[0], true)
+      : `<div class="split-media-stack">${mediaItems.map(m => groupMediaHTML(m, true)).join('')}</div>`;
     return `<div class="split${reverse ? ' split--reverse' : ''} reveal">
       <div class="split-text">${textHTML}</div>
       <div class="split-media">${mediaHTML}</div>
@@ -75,7 +88,7 @@ function groupHTML(block) {
   }
 
   if (layout === 'media-above' || layout === 'media-below') {
-    const mediaHTML = `<div class="group-media-stack">${mediaItems.map(groupMediaHTML).join('')}</div>`;
+    const mediaHTML = `<div class="group-media-stack">${mediaItems.map(m => groupMediaHTML(m)).join('')}</div>`;
     const textHTML = textItems.map(blockHTML).join('');
     const ordered = layout === 'media-above' ? mediaHTML + textHTML : textHTML + mediaHTML;
     return `<div class="content-group reveal">${ordered}</div>`;

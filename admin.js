@@ -1036,7 +1036,7 @@ function blockEditorHTML(block, i, gi) {
           </div>
         `).join('')}
       </div>
-      <p class="hint" style="margin:0.3rem 0 0;">Drag photos to reorder — or drag one into a different Gallery block to move it there.</p>
+      <p class="hint" style="margin:0.3rem 0 0;">Drag photos to reorder — or drag one into a different Gallery block to move it there. Used as the side media in a "text left/right" group, this always stacks to one column and ignores the crop/offset settings above (they don't apply with only one column) unless you explicitly turn them on.</p>
     `;
   } else if (block.type === 'group') {
     const items = block.items || [];
