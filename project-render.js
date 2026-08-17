@@ -20,16 +20,17 @@ function fileExt(src) {
 }
 
 // `block` (optional) carries the dashboard's per-gallery overrides:
-// columns ('auto'|'2'|'3'|'4'), uniform (crop every photo to a consistent
+// columns ('auto'|'1'..'6'), uniform (crop every photo to a consistent
 // grid cell — the default, since letting each photo's native aspect ratio
 // dictate its cell size is what produced the "random"-looking uneven grids),
 // stagger (offset alternating photos — auto-on for 3+ photos unless
-// explicitly turned off), and size (constrains the gallery's overall width —
-// the gallery equivalent of a standalone Picture's size, just on the whole
-// grid rather than one photo). Unset/'auto' keeps today's behavior of
-// filling the available band width, so existing galleries saved before this
-// control existed render unchanged.
+// explicitly turned off), size (constrains the gallery's overall width — the
+// gallery equivalent of a standalone Picture's size, just on the whole grid
+// rather than one photo; unset/'auto' keeps today's behavior of filling the
+// available band width), and align (left/center/right — only visible once a
+// size constraint leaves spare width to move within; defaults to center).
 const GALLERY_SIZE_MAP = { xs: '420px', small: '620px', medium: '820px', large: '1040px' };
+const GALLERY_ALIGN_MARGIN = { left: '0 auto 0 0', center: '0 auto', right: '0 0 0 auto' };
 function galleryInnerHTML(images, block) {
   const count = images.length;
   const colsOverride = block && block.columns && block.columns !== 'auto' ? parseInt(block.columns, 10) : null;
@@ -38,7 +39,8 @@ function galleryInnerHTML(images, block) {
   const uniform = !(block && block.uniform === false);
   const classes = `project-gallery cols-${columns}${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
   const maxW = block && block.size && GALLERY_SIZE_MAP[block.size];
-  const sizeStyle = maxW ? ` style="max-width:${maxW}; margin-left:auto; margin-right:auto;"` : '';
+  const margin = GALLERY_ALIGN_MARGIN[(block && block.align) || 'center'];
+  const sizeStyle = maxW ? ` style="max-width:${maxW}; margin:${margin};"` : '';
   const imgsHTML = images.map(img =>
     `<img src="${escapeHTML(img.src)}" alt="${escapeHTML(img.alt || '')}" loading="lazy" class="lightbox-img">`).join('');
   return { html: `<div class="${classes}"${sizeStyle}>${imgsHTML}</div>`, columns };

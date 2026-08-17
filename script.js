@@ -1,8 +1,9 @@
 document.getElementById('year').textContent = new Date().getFullYear();
 
 // Site-wide settings driven by the dashboard's Site & Bio tab (data/site.json):
-// accent color, footer social links, portfolio category headings, and default
-// social-preview (Open Graph) tags. Runs on every page (this file is shared
+// accent color, background color, footer social links, portfolio category
+// headings, and default social-preview (Open Graph) tags. Runs on every page
+// (this file is shared
 // by index.html, project.html, the legacy project pages, and 404.html) so
 // these apply everywhere without editing HTML/CSS by hand. Falls back
 // silently to whatever's already in the static HTML if the fetch fails
@@ -42,6 +43,12 @@ fetch('data/site.json?_=' + Date.now(), { cache: 'no-store' })
     if (site.accentColor) {
       document.documentElement.style.setProperty('--accent', site.accentColor);
       document.documentElement.style.setProperty('--accent-dark', darkenHex(site.accentColor, 0.22));
+    }
+    if (site.backgroundColor) {
+      // --cream-2 is the alternating-band/card tint used throughout — a
+      // subtly darker shade of the main background, not a separate pick.
+      document.documentElement.style.setProperty('--cream', site.backgroundColor);
+      document.documentElement.style.setProperty('--cream-2', darkenHex(site.backgroundColor, 0.03));
     }
     renderSocialLinks(site.social);
 

@@ -297,27 +297,38 @@ async function loadAll() {
 // ---------- site & bio tab ----------
 
 const ACCENT_DEFAULT = '#1a01ff';
+const BG_DEFAULT = '#fdfbe8';
 
-function setAccentInputs(hex) {
-  const clean = /^#[0-9a-fA-F]{6}$/.test(hex || '') ? hex : ACCENT_DEFAULT;
-  document.getElementById('f-accentColor').value = clean;
-  document.getElementById('f-accentColorHex').value = clean;
+// Wires a <input type=color> + paired hex text field + reset button as one
+// unit — used for both the accent and background color controls, which are
+// otherwise identical. Color <-> hex stay in sync either direction; the hex
+// field also accepts a pasted value without a picker. Returns a setter so
+// load/restore code can populate both inputs from a saved value.
+function wireColorField(colorId, hexId, resetBtnId, defaultHex) {
+  const colorEl = document.getElementById(colorId);
+  const hexEl = document.getElementById(hexId);
+  const setInputs = (hex) => {
+    const clean = /^#[0-9a-fA-F]{6}$/.test(hex || '') ? hex : defaultHex;
+    colorEl.value = clean;
+    hexEl.value = clean;
+  };
+  colorEl.addEventListener('input', (e) => {
+    hexEl.value = e.target.value;
+    siteDirty = true; autosaveSite();
+  });
+  hexEl.addEventListener('input', (e) => {
+    const v = e.target.value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) colorEl.value = v;
+    siteDirty = true; autosaveSite();
+  });
+  document.getElementById(resetBtnId).addEventListener('click', () => {
+    setInputs(defaultHex);
+    siteDirty = true; autosaveSite();
+  });
+  return setInputs;
 }
-// Color <input type=color> and its paired hex text field stay in sync either
-// direction; the hex field also accepts a pasted value without a picker.
-document.getElementById('f-accentColor').addEventListener('input', (e) => {
-  document.getElementById('f-accentColorHex').value = e.target.value;
-  siteDirty = true; autosaveSite();
-});
-document.getElementById('f-accentColorHex').addEventListener('input', (e) => {
-  const v = e.target.value.trim();
-  if (/^#[0-9a-fA-F]{6}$/.test(v)) document.getElementById('f-accentColor').value = v;
-  siteDirty = true; autosaveSite();
-});
-document.getElementById('resetAccentBtn').addEventListener('click', () => {
-  setAccentInputs(ACCENT_DEFAULT);
-  siteDirty = true; autosaveSite();
-});
+const setAccentInputs = wireColorField('f-accentColor', 'f-accentColorHex', 'resetAccentBtn', ACCENT_DEFAULT);
+const setBgInputs = wireColorField('f-bgColor', 'f-bgColorHex', 'resetBgBtn', BG_DEFAULT);
 
 function markSynced(elId) {
   const el = document.getElementById(elId);
@@ -331,6 +342,7 @@ async function loadSite() {
   markSynced('siteSyncStatus');
   const set = (id, val) => { document.getElementById(id).value = val || ''; };
   setAccentInputs(siteData.accentColor);
+  setBgInputs(siteData.backgroundColor);
   const groupLabels = siteData.groupLabels || {};
   set('f-groupLabelFashion', groupLabels['fashion-technology']);
   set('f-groupLabelPersonal', groupLabels['personal']);
@@ -359,6 +371,7 @@ async function loadSite() {
 const autosaveSite = debounce(() => {
   writeAutosave(AUTOSAVE_SITE_KEY, {
     accentColor: document.getElementById('f-accentColorHex').value,
+    backgroundColor: document.getElementById('f-bgColorHex').value,
     groupLabelFashion: document.getElementById('f-groupLabelFashion').value,
     groupLabelPersonal: document.getElementById('f-groupLabelPersonal').value,
     socialInstagram: document.getElementById('f-socialInstagram').value,
@@ -394,6 +407,7 @@ function checkSiteAutosave() {
   }
   const set = (id, val) => { document.getElementById(id).value = val || ''; };
   setAccentInputs(draft.accentColor);
+  setBgInputs(draft.backgroundColor);
   set('f-groupLabelFashion', draft.groupLabelFashion);
   set('f-groupLabelPersonal', draft.groupLabelPersonal);
   set('f-socialInstagram', draft.socialInstagram);
@@ -448,6 +462,7 @@ document.getElementById('saveSiteBtn').addEventListener('click', (e) => {
 
       const updated = {
         accentColor: document.getElementById('f-accentColorHex').value || ACCENT_DEFAULT,
+        backgroundColor: document.getElementById('f-bgColorHex').value || BG_DEFAULT,
         groupLabels: {
           'fashion-technology': document.getElementById('f-groupLabelFashion').value.trim() || 'Projects at Fashion Technology',
           'personal': document.getElementById('f-groupLabelPersonal').value.trim() || 'Personal Projects'
@@ -1044,8 +1059,8 @@ function alignIcon(align) {
     </span>
   </span>`;
 }
-function alignPickerHTML(block, attrs) {
-  const current = block.align || 'left';
+function alignPickerHTML(block, attrs, defaultAlign) {
+  const current = block.align || defaultAlign || 'left';
   const options = ['left', 'center', 'right'].map(v => ({
     value: v, label: v[0].toUpperCase() + v.slice(1), icon: alignIcon(v)
   }));
@@ -1122,7 +1137,7 @@ function blockEditorHTML(block, i, gi) {
     `;
   } else if (block.type === 'gallery') {
     const currentCols = block.columns && block.columns !== 'auto' ? block.columns : 'auto';
-    const columnsOptions = ['auto', '1', '2', '3', '4'].map(v => ({
+    const columnsOptions = ['auto', '1', '2', '3', '4', '5', '6'].map(v => ({
       value: v, label: v === 'auto' ? 'Auto' : v === '1' ? 'Vertical' : v, icon: galleryColumnsIcon(v)
     }));
     fields = `
@@ -1140,6 +1155,7 @@ function blockEditorHTML(block, i, gi) {
         </label>
       </div>
       ${gallerySizePickerHTML(block, attrs)}
+      ${alignPickerHTML(block, attrs, 'center')}
       <div class="gallery-images" ${attrs}>
         ${(block.images || []).map((img, imgI) => `
           <div class="gallery-image-item" ${attrs} data-imgi="${imgI}" draggable="true">

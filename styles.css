@@ -654,6 +654,8 @@ h1, h2, h3, h4 {
 .project-gallery.cols-2 { grid-template-columns: repeat(2, 1fr); }
 .project-gallery.cols-3 { grid-template-columns: repeat(3, 1fr); }
 .project-gallery.cols-4 { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.project-gallery.cols-5 { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
+.project-gallery.cols-6 { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
 .project-gallery.wide { grid-template-columns: 1fr; }
 /* The stagger offset below is a transform, which doesn't add layout height —
    without this, the shifted-down images visually overlap whatever content
