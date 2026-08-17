@@ -1128,7 +1128,7 @@ function blockEditorHTML(block, i, gi) {
       ${block.src || block._pendingFile ? `<span class="hint">${block._pendingFile ? block._pendingFile.name : 'File attached'}</span>` : ''}
       <label class="hint" style="display:block; margin-top:0.3rem;">Cover image (optional — shown as a preview instead of a generic file icon)</label>
       <input type="file" accept="image/*" data-action="fileCoverUpload" ${attrs}>
-      ${coverPreview ? `<img src="${coverPreview}" alt="" style="width:70px;height:90px;object-fit:cover;border-radius:4px;margin-top:0.3rem;">` : ''}
+      ${coverPreview ? `<img src="${coverPreview}" alt="" style="width:70px;height:90px;object-fit:contain;border-radius:4px;margin-top:0.3rem;background:var(--a-bg2);">` : ''}
       ${coverPreview ? `<button type="button" class="btn-admin secondary small" data-action="removeFileCover" ${attrs} style="margin-top:0.3rem; width:fit-content;">Remove cover image</button>` : ''}
       ${blockSizePickerHTML(block, attrs)}
     `;
@@ -1136,7 +1136,7 @@ function blockEditorHTML(block, i, gi) {
     fields = `
       <input type="file" accept="image/*" data-action="pictureUpload" ${attrs}>
       <input type="text" placeholder="Alt text" value="${(block.alt || '').replace(/"/g, '&quot;')}" data-action="alt" ${attrs}>
-      ${block.src || block._previewSrc ? `<img src="${block._previewSrc || block.src}" alt="" class="picture-drag-thumb" draggable="true" ${attrs} style="width:70px;height:90px;object-fit:cover;border-radius:4px;">` : ''}
+      ${block.src || block._previewSrc ? `<img src="${block._previewSrc || block.src}" alt="" class="picture-drag-thumb" draggable="true" ${attrs} style="width:70px;height:90px;object-fit:contain;border-radius:4px;background:var(--a-bg2);">` : ''}
       ${block.src || block._previewSrc ? `<p class="hint" style="margin:0.2rem 0 0;">Drag this photo into a Gallery block to move it there.</p>` : ''}
       ${blockSizePickerHTML(block, attrs)}
     `;

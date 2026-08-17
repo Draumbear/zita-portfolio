@@ -689,11 +689,11 @@ h1, h2, h3, h4 {
   cursor: zoom-in;
   transition: transform 0.4s cubic-bezier(.2,.7,.3,1), box-shadow 0.4s;
 }
-/* Default — crops every photo to the same cell shape so the grid lines up
-   regardless of each photo's original aspect ratio (mixing portrait and
-   landscape photos with natural height otherwise produces a ragged,
-   uneven-looking grid). Galleries can opt out of this per-block. */
-.project-gallery.uniform img { aspect-ratio: 3 / 4; object-fit: cover; }
+/* Default — holds every photo to the same cell shape so the grid lines up,
+   without cropping into the photo itself: object-fit:contain letterboxes
+   (against --cream-2, matching the img background above) rather than
+   cutting off any of the actual image. Galleries can opt out per-block. */
+.project-gallery.uniform img { aspect-ratio: 3 / 4; object-fit: contain; }
 .project-gallery img:hover {
   transform: scale(1.03);
   box-shadow: 0 12px 32px rgba(23,21,46,0.16);

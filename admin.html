@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="admin.css?v=20260817q">
+<link rel="stylesheet" href="admin.css?v=20260817r">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <meta name="robots" content="noindex, nofollow">
@@ -172,7 +172,7 @@
           <div class="admin-field">
             <label for="f-aboutPhoto">Profile photo</label>
             <input type="file" id="f-aboutPhoto" accept="image/*">
-            <img id="aboutPhotoPreview" alt="" style="margin-top:0.6rem; width:110px; height:140px; object-fit:cover; border-radius:6px; border:1px solid var(--a-line);">
+            <img id="aboutPhotoPreview" alt="" style="margin-top:0.6rem; width:110px; height:140px; object-fit:contain; border-radius:6px; border:1px solid var(--a-line); background:var(--a-bg2);">
           </div>
           <div class="admin-field">
             <label for="f-aboutCaption">Photo caption</label>
@@ -259,7 +259,7 @@
         <div class="admin-field">
           <label for="pe-thumb">Thumbnail image</label>
           <input type="file" id="pe-thumb" accept="image/*">
-          <img id="pe-thumb-preview" alt="" style="margin-top:0.6rem; width:90px; height:126px; object-fit:cover; border-radius:6px; border:1px solid var(--a-line);">
+          <img id="pe-thumb-preview" alt="" style="margin-top:0.6rem; width:90px; height:126px; object-fit:contain; border-radius:6px; border:1px solid var(--a-line); background:var(--a-bg2);">
         </div>
 
         <div id="pe-blocks-wrap" class="hidden">
@@ -327,6 +327,6 @@
      without a version bump a returning visitor can silently keep running old
      code after a deploy. -->
 <script src="admin-github.js?v=20260817o"></script>
-<script src="admin.js?v=20260817v"></script>
+<script src="admin.js?v=20260817w"></script>
 </body>
 </html>
