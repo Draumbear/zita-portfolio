@@ -70,26 +70,78 @@ const revealObserver = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
 
-let lightbox, lightboxImg;
+// Images the lightbox can select from — a picture, a gallery photo, or a
+// group's media image counts, whichever page built the markup (rendered by
+// project-render.js, or hand-authored on the older custom pages).
+const LIGHTBOX_IMG_SELECTOR = '.lightbox-img, .project-gallery img, .split-media img';
+
+let lightbox, lightboxImg, lightboxPrevBtn, lightboxNextBtn, lightboxCounter;
+let lightboxImages = [];
+let lightboxIndex = 0;
+
+function showLightboxImage(idx) {
+  lightboxIndex = (idx + lightboxImages.length) % lightboxImages.length;
+  const img = lightboxImages[lightboxIndex];
+  lightboxImg.src = img.src;
+  lightboxImg.alt = img.alt;
+  const multi = lightboxImages.length > 1;
+  lightboxPrevBtn.style.display = multi ? '' : 'none';
+  lightboxNextBtn.style.display = multi ? '' : 'none';
+  lightboxCounter.textContent = multi ? `${lightboxIndex + 1} / ${lightboxImages.length}` : '';
+}
+
 function ensureLightbox() {
   if (lightbox) return;
   lightbox = document.createElement('div');
   lightbox.className = 'lightbox';
-  lightbox.innerHTML = '<button class="lightbox-close" aria-label="Close">&times;</button><img alt="">';
+  lightbox.innerHTML = `
+    <button class="lightbox-close" aria-label="Close">&times;</button>
+    <button class="lightbox-nav lightbox-prev" aria-label="Previous photo">&#8249;</button>
+    <img alt="">
+    <button class="lightbox-nav lightbox-next" aria-label="Next photo">&#8250;</button>
+    <span class="lightbox-counter"></span>
+  `;
   document.body.appendChild(lightbox);
   lightboxImg = lightbox.querySelector('img');
+  lightboxPrevBtn = lightbox.querySelector('.lightbox-prev');
+  lightboxNextBtn = lightbox.querySelector('.lightbox-next');
+  lightboxCounter = lightbox.querySelector('.lightbox-counter');
 
   const closeLightbox = () => lightbox.classList.remove('open');
+  const goPrev = () => showLightboxImage(lightboxIndex - 1);
+  const goNext = () => showLightboxImage(lightboxIndex + 1);
+
   lightbox.addEventListener('click', closeLightbox);
-  lightboxImg.addEventListener('click', (e) => e.stopPropagation());
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+  [lightboxImg, lightboxPrevBtn, lightboxNextBtn, lightboxCounter].forEach(el => el.addEventListener('click', (e) => e.stopPropagation()));
+  lightboxPrevBtn.addEventListener('click', goPrev);
+  lightboxNextBtn.addEventListener('click', goNext);
+  document.addEventListener('keydown', (e) => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') goPrev();
+    if (e.key === 'ArrowRight') goNext();
+  });
+
+  // Swipe left/right to navigate on touch devices.
+  let touchStartX = null;
+  lightbox.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].clientX; }, { passive: true });
+  lightbox.addEventListener('touchend', (e) => {
+    if (touchStartX == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 40) (dx < 0 ? goNext : goPrev)();
+    touchStartX = null;
+  }, { passive: true });
 
   // Delegated so it also covers images added after this point.
   document.addEventListener('click', (e) => {
-    const img = e.target.closest('.project-gallery img, .split-media img');
+    const img = e.target.closest(LIGHTBOX_IMG_SELECTOR);
     if (!img) return;
-    lightboxImg.src = img.src;
-    lightboxImg.alt = img.alt;
+    // "That section" = the enclosing band (the colored block between Title
+    // blocks) — swiping/clicking through moves among photos grouped there,
+    // not every photo on the whole project page.
+    const scope = img.closest('.band') || document;
+    lightboxImages = Array.from(scope.querySelectorAll(LIGHTBOX_IMG_SELECTOR));
+    showLightboxImage(lightboxImages.indexOf(img));
     lightbox.classList.add('open');
   });
 }
@@ -99,7 +151,7 @@ window.initProjectInteractions = function initProjectInteractions() {
     el.setAttribute('data-observed', '');
     revealObserver.observe(el);
   });
-  if (document.querySelector('.project-gallery img, .split-media img')) ensureLightbox();
+  if (document.querySelector(LIGHTBOX_IMG_SELECTOR)) ensureLightbox();
 };
 
 window.initProjectInteractions();

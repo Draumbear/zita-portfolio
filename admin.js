@@ -4,6 +4,73 @@ let siteSha = null;        // sha of data/site.json as of last load — used to 
 let projectsIndex = [];
 let currentDraft = null;   // project being edited in the editor panel
 let editingSlug = null;    // slug of existing project being edited, or null for "new"
+let projectSaveInFlight = false; // true while saveProject() is uploading/committing — guards
+                                  // against Cancel/Delete/switching-project reassigning or
+                                  // clearing currentDraft out from under the in-flight save
+let siteDirty = false;    // true if the Site & Bio form has unsaved edits
+let projectDirty = false; // true if the open project editor has unsaved edits
+
+window.addEventListener('beforeunload', (e) => {
+  if (siteDirty || projectDirty || projectSaveInFlight) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// ---------- autosave (local recovery only — never sent anywhere) ----------
+// Saves just enough of the in-progress form to recover from a crashed tab or
+// accidental close. Deliberately does NOT persist File objects (photo/CV/image
+// picks) — those can't survive localStorage, so a restored draft may need
+// unsaved picture selections re-added; text and block structure do recover.
+
+const AUTOSAVE_SITE_KEY = 'zita-admin-autosave-site';
+const AUTOSAVE_PROJECT_KEY = 'zita-admin-autosave-project';
+
+function readAutosave(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+}
+function writeAutosave(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ ...data, savedAt: Date.now() })); } catch { /* storage full/unavailable — autosave is best-effort */ }
+}
+function clearAutosave(key) {
+  localStorage.removeItem(key);
+}
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// Strips non-serializable per-block state (pending File objects, blob: preview
+// URLs) so the block tree can round-trip through localStorage.
+function serializableBlocks(blocks) {
+  return (blocks || []).map(b => {
+    const copy = { ...b };
+    delete copy._pendingFile; delete copy._previewSrc;
+    if (copy.images) copy.images = copy.images.map(img => { const c = { ...img }; delete c._pendingFile; delete c._previewSrc; return c; });
+    if (copy.items) copy.items = serializableBlocks(copy.items);
+    return copy;
+  });
+}
+
+// All repo-hosted image/file paths a project currently references (thumbnail +
+// every block, recursing into groups). Used to spot uploads that fell out of
+// use — a replaced thumbnail, a removed picture block, a deleted gallery photo
+// — so the old file can be deleted from the repo in the same save commit
+// instead of sitting there orphaned forever.
+function collectReferencedPaths(project) {
+  const paths = new Set();
+  const add = (url) => { const p = gh.pathFromRawUrl(url); if (p) paths.add(p); };
+  if (project.thumbnail) add(project.thumbnail.src);
+  const walk = (blocks) => {
+    for (const b of blocks || []) {
+      if ((b.type === 'file' || b.type === 'picture') && b.src) add(b.src);
+      if (b.type === 'gallery') (b.images || []).forEach(img => add(img.src));
+      if (b.type === 'group') walk(b.items);
+    }
+  };
+  walk(project.blocks);
+  return paths;
+}
 
 // Re-fetches data/projects-index.json fresh (never trusting the in-memory
 // copy, which may be stale) and returns it. Callers should merge their
@@ -77,8 +144,47 @@ async function withBusy(btn, label, fn) {
   const original = btn.textContent;
   btn.disabled = true;
   btn.textContent = label;
-  try { await fn(); }
+  const setLabel = (text) => { btn.textContent = text; };
+  try { await fn(setLabel); }
   finally { btn.disabled = false; btn.textContent = original; }
+}
+
+// Persistent (not auto-dismissing-in-4s) indicator that GitHub Pages is
+// republishing after a save. Editing in the dashboard is available again
+// immediately (the save button already re-enabled) — this just tracks the
+// separate, slower step of the *live* site catching up.
+function showBuildStatus() {
+  const prev = document.getElementById('buildStatus');
+  if (prev) prev.remove();
+
+  const el = document.createElement('div');
+  el.id = 'buildStatus';
+  el.className = 'build-status';
+  el.innerHTML = `
+    <div class="build-status-bar"><div class="build-status-fill"></div></div>
+    <span class="build-status-label">Saved — your live site is rebuilding…</span>
+  `;
+  document.body.appendChild(el);
+
+  const fill = el.querySelector('.build-status-fill');
+  const label = el.querySelector('.build-status-label');
+  const duration = 60000;
+  const start = Date.now();
+
+  // setInterval (not requestAnimationFrame) so this keeps advancing even in a
+  // backgrounded tab — the whole point is to check it after switching away
+  // to look at the live site.
+  const timer = setInterval(() => {
+    if (!document.body.contains(el)) { clearInterval(timer); return; }
+    const pct = Math.min(100, ((Date.now() - start) / duration) * 100);
+    fill.style.width = pct + '%';
+    if (pct >= 100) {
+      clearInterval(timer);
+      label.textContent = 'Should be live now — refresh the site to check.';
+      el.classList.add('done');
+      setTimeout(() => el.remove(), 6000);
+    }
+  }, 500);
 }
 
 // ---------- connect ----------
@@ -107,7 +213,15 @@ async function tryConnect(cfg, silent) {
     const status = document.getElementById('connStatus');
     status.textContent = `Connected — ${cfg.owner}/${cfg.repo}`;
     status.className = 'conn-status ok';
+    const liveLink = document.getElementById('viewLiveLink');
+    // GitHub Pages' default project-site URL. If the repo publishes to a custom
+    // domain via a CNAME file, this link will still work (Pages redirects) —
+    // it just won't be the prettiest URL.
+    liveLink.href = `https://${cfg.owner}.github.io/${cfg.repo}/`;
+    liveLink.classList.remove('hidden');
     await loadAll();
+    checkSiteAutosave();
+    await checkProjectAutosave();
   } catch (e) {
     if (!silent) errEl.textContent = e.message;
     else GitHubStore.clear();
@@ -165,34 +279,84 @@ async function loadSite() {
 
   const cvLink = document.getElementById('currentCvLink');
   cvLink.innerHTML = siteData.cvUrl ? `Current file: <a href="${siteData.cvUrl}" target="_blank" rel="noopener">view</a>` : 'No CV uploaded yet.';
+  siteDirty = false;
+}
+
+const autosaveSite = debounce(() => {
+  writeAutosave(AUTOSAVE_SITE_KEY, {
+    heroEyebrow: document.getElementById('f-heroEyebrow').value,
+    heroName: document.getElementById('f-heroName').value,
+    heroSub: document.getElementById('f-heroSub').value,
+    aboutEyebrow: document.getElementById('f-aboutEyebrow').value,
+    aboutHeading: document.getElementById('f-aboutHeading').value,
+    aboutParagraphs: document.getElementById('f-aboutParagraphs').value,
+    aboutCaption: document.getElementById('f-aboutCaption').value,
+    contactName: document.getElementById('f-contactName').value,
+    contactEmail: document.getElementById('f-contactEmail').value
+  });
+}, 800);
+
+document.querySelectorAll('#tab-site input[type="text"], #tab-site input[type="email"], #tab-site textarea').forEach(el => {
+  el.addEventListener('input', () => { siteDirty = true; autosaveSite(); });
+});
+// File selections can't be autosaved (Files don't survive localStorage) but
+// still count as unsaved work for the beforeunload warning.
+document.getElementById('f-aboutPhoto').addEventListener('change', () => { siteDirty = true; });
+document.getElementById('f-cvFile').addEventListener('change', () => { siteDirty = true; });
+
+function checkSiteAutosave() {
+  const draft = readAutosave(AUTOSAVE_SITE_KEY);
+  if (!draft) return;
+  const when = new Date(draft.savedAt).toLocaleString();
+  if (!confirm(`Found unsaved Site & Bio changes from ${when} (likely a closed tab or crash). Restore them into the form?`)) {
+    clearAutosave(AUTOSAVE_SITE_KEY);
+    return;
+  }
+  const set = (id, val) => { document.getElementById(id).value = val || ''; };
+  set('f-heroEyebrow', draft.heroEyebrow);
+  set('f-heroName', draft.heroName);
+  set('f-heroSub', draft.heroSub);
+  set('f-aboutEyebrow', draft.aboutEyebrow);
+  set('f-aboutHeading', draft.aboutHeading);
+  set('f-aboutParagraphs', draft.aboutParagraphs);
+  set('f-aboutCaption', draft.aboutCaption);
+  set('f-contactName', draft.contactName);
+  set('f-contactEmail', draft.contactEmail);
+  siteDirty = true;
+  toast('Draft restored — review and click Save changes.', 'info');
 }
 
 document.getElementById('saveSiteBtn').addEventListener('click', (e) => {
-  withBusy(e.target, 'Saving…', async () => {
+  withBusy(e.target, 'Saving…', async (setLabel) => {
     try {
       const photoFile = document.getElementById('f-aboutPhoto').files[0];
       const cvFile = document.getElementById('f-cvFile').files[0];
+      const files = []; // batched into a single commit alongside data/site.json below
 
       const aboutPhoto = siteData.aboutPhoto || {};
+      const oldPhotoSrc = aboutPhoto.src; // captured before any overwrite, for orphan cleanup below
       if (photoFile) {
-        aboutPhoto.src = await gh.uploadImage(photoFile, 'assets/uploads');
+        setLabel('Optimizing photo…');
+        const prepared = await gh.prepareUpload(photoFile, 'assets/uploads');
+        files.push({ path: prepared.path, content: prepared.content });
+        aboutPhoto.src = prepared.url;
         aboutPhoto.alt = document.getElementById('f-contactName').value.trim() || 'Profile photo';
+        const oldPath = gh.pathFromRawUrl(oldPhotoSrc);
+        if (oldPath) files.push({ path: oldPath, delete: true });
       }
 
-      let cvUrl = siteData.cvUrl || '';
+      const oldCvUrl = siteData.cvUrl || '';
+      let cvUrl = oldCvUrl;
       if (cvFile) {
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result.split(',')[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(cvFile);
-        });
-        const safeName = cvFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '-');
-        const path = `assets/uploads/${Date.now()}-${safeName}`;
-        await gh.putFile(path, { base64 }, `Upload CV: ${safeName}`);
-        cvUrl = `https://raw.githubusercontent.com/${gh.owner}/${gh.repo}/${gh.branch}/${path}`;
+        setLabel('Preparing CV…');
+        const prepared = await gh.prepareUpload(cvFile, 'assets/uploads', { optimize: false });
+        files.push({ path: prepared.path, content: prepared.content });
+        cvUrl = prepared.url;
+        const oldPath = gh.pathFromRawUrl(oldCvUrl);
+        if (oldPath) files.push({ path: oldPath, delete: true });
       }
 
+      setLabel('Saving…');
       const paragraphs = document.getElementById('f-aboutParagraphs').value
         .split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
 
@@ -215,12 +379,15 @@ document.getElementById('saveSiteBtn').addEventListener('click', (e) => {
         return;
       }
 
-      await gh.putJSON('data/site.json', updated, 'Update site info via dashboard');
+      files.push({ path: 'data/site.json', content: JSON.stringify(updated, null, 2) });
+      await gh.commitBatch(files, 'Update site info via dashboard');
       siteData = updated;
       document.getElementById('f-aboutPhoto').value = '';
       document.getElementById('f-cvFile').value = '';
       await loadSite();
-      toast('Site info saved. GitHub Pages usually rebuilds within ~1 minute.', 'ok');
+      clearAutosave(AUTOSAVE_SITE_KEY);
+      toast('Site info saved.', 'ok');
+      showBuildStatus();
     } catch (e) {
       toast('Save failed: ' + e.message, 'err');
     }
@@ -240,6 +407,7 @@ document.querySelectorAll('.admin-tabs button').forEach(btn => {
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
     document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
     if (btn.dataset.tab === 'projects') loadProjects();
+    if (btn.dataset.tab === 'media') loadMedia();
   });
 });
 
@@ -248,6 +416,143 @@ document.getElementById('refreshSiteBtn').addEventListener('click', (e) => {
 });
 document.getElementById('refreshProjectsBtn').addEventListener('click', (e) => {
   withBusy(e.target, 'Refreshing…', loadProjects);
+});
+document.getElementById('refreshMediaBtn').addEventListener('click', (e) => {
+  withBusy(e.target, 'Refreshing…', loadMedia);
+});
+
+// ---------- media library ----------
+// Every file under assets/uploads, cross-referenced against site.json and
+// every managed project's detail JSON so Zita can see what's actually in use
+// vs safe to delete, download a picture to move it, then re-upload it in the
+// right spot (see the note in admin.html about legacy custom pages not being
+// scanned — their hard-coded images can't be detected this way).
+
+let mediaFiles = [];
+let mediaUsage = new Map(); // repo-relative path -> [location labels]
+
+async function buildSiteWideUsageMap() {
+  const usage = new Map();
+  const addUsage = (url, label) => {
+    const path = gh.pathFromRawUrl(url);
+    if (!path) return;
+    if (!usage.has(path)) usage.set(path, []);
+    usage.get(path).push(label);
+  };
+
+  const site = await gh.getJSON('data/site.json') || {};
+  if (site.aboutPhoto) addUsage(site.aboutPhoto.src, 'Site & Bio — profile photo');
+  addUsage(site.cvUrl, 'Site & Bio — CV');
+
+  const index = await fetchFreshIndex();
+  for (const entry of index) {
+    if (entry.thumbnail) addUsage(entry.thumbnail.src, `"${entry.title}" — thumbnail`);
+    if (entry.contentType === 'legacy') continue;
+    const detail = await gh.getJSON(`data/projects/${entry.slug}.json`);
+    if (!detail) continue;
+    const walk = (blocks) => {
+      for (const b of blocks || []) {
+        if ((b.type === 'file' || b.type === 'picture') && b.src) addUsage(b.src, `"${entry.title}"`);
+        if (b.type === 'gallery') (b.images || []).forEach(img => addUsage(img.src, `"${entry.title}" — gallery`));
+        if (b.type === 'group') walk(b.items);
+      }
+    };
+    walk(detail.blocks);
+  }
+  return usage;
+}
+
+async function loadMedia() {
+  const [files, usage] = await Promise.all([
+    gh.listFolder('assets/uploads'),
+    buildSiteWideUsageMap()
+  ]);
+  // Filenames are "<timestamp>-<seq>-name", so a plain descending sort puts
+  // the most recently uploaded files first.
+  mediaFiles = files.sort((a, b) => b.name.localeCompare(a.name));
+  mediaUsage = usage;
+  markSynced('mediaSyncStatus');
+  renderMediaGrid();
+}
+
+function isImagePath(name) {
+  return /\.(jpe?g|png|gif|webp|svg|avif)$/i.test(name);
+}
+
+function formatBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function renderMediaGrid() {
+  const grid = document.getElementById('mediaGrid');
+  if (!mediaFiles.length) { grid.innerHTML = '<p class="hint">No uploads yet.</p>'; return; }
+  grid.innerHTML = mediaFiles.map(f => {
+    const usedBy = mediaUsage.get(f.path);
+    const preview = isImagePath(f.name)
+      ? `<img src="${gh.rawUrl(f.path)}" alt="">`
+      : `<div class="media-file-icon">📄<span>${(f.name.split('.').pop() || 'file').toUpperCase()}</span></div>`;
+    return `
+      <div class="media-item">
+        ${preview}
+        <div class="media-meta">
+          <span class="media-name" title="${f.name}">${f.name}</span>
+          <span class="media-size">${formatBytes(f.size)}</span>
+          <span class="media-usage ${usedBy ? 'in-use' : 'unused'}">${usedBy ? usedBy.join(', ') : 'Not used anywhere'}</span>
+        </div>
+        <div class="media-actions">
+          <button class="btn-admin secondary small" data-media-download="${f.path}">Download</button>
+          <button class="btn-admin danger small" data-media-delete="${f.path}">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('mediaGrid').addEventListener('click', (e) => {
+  const dlBtn = e.target.closest('[data-media-download]');
+  if (dlBtn) {
+    const path = dlBtn.dataset.mediaDownload;
+    withBusy(dlBtn, 'Downloading…', async () => {
+      try {
+        const res = await fetch(gh.rawUrl(path));
+        if (!res.ok) throw new Error(`Download failed (${res.status})`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = path.split('/').pop();
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        toast('Download failed: ' + err.message, 'err');
+      }
+    });
+    return;
+  }
+
+  const delBtn = e.target.closest('[data-media-delete]');
+  if (delBtn) {
+    const path = delBtn.dataset.mediaDelete;
+    const usedBy = mediaUsage.get(path);
+    const name = path.split('/').pop();
+    const msg = usedBy
+      ? `"${name}" is currently used by: ${usedBy.join(', ')}.\n\nDeleting it will break that image on the live site. Delete anyway?`
+      : `Delete "${name}"? Download it first if you might need it again — this can't be undone from here.`;
+    if (!confirm(msg)) return;
+    withBusy(delBtn, 'Deleting…', async () => {
+      try {
+        await gh.commitBatch([{ path, delete: true }], `Delete unused upload: ${name}`);
+        await loadMedia();
+        toast('Deleted.', 'ok');
+      } catch (err) {
+        toast('Delete failed: ' + err.message, 'err');
+      }
+    });
+  }
 });
 
 // ---------- projects list ----------
@@ -273,6 +578,7 @@ function renderProjectLists() {
           <button class="btn-admin secondary small" data-move="up" data-slug="${p.slug}" ${i === 0 ? 'disabled' : ''}>↑</button>
           <button class="btn-admin secondary small" data-move="down" data-slug="${p.slug}" ${i === items.length - 1 ? 'disabled' : ''}>↓</button>
           <button class="btn-admin secondary small" data-edit="${p.slug}">Edit</button>
+          ${p.contentType !== 'legacy' ? `<button class="btn-admin secondary small" data-duplicate="${p.slug}" title="Duplicate as a starting point for a new project">⧉ Duplicate</button>` : ''}
         </div>
       </div>
     `).join('') || '<p class="hint">No projects yet.</p>';
@@ -282,15 +588,80 @@ function renderProjectLists() {
 document.querySelectorAll('.admin-main').forEach(main => {
   main.addEventListener('click', (e) => {
     const editBtn = e.target.closest('[data-edit]');
-    if (editBtn) { openEditor(editBtn.dataset.edit); return; }
+    if (editBtn) {
+      if (projectSaveInFlight) { toast('Still saving the current project — one second.', 'info'); return; }
+      if (projectDirty && !confirm('Discard unsaved changes to the project you\'re currently editing?')) return;
+      clearAutosave(AUTOSAVE_PROJECT_KEY);
+      openEditor(editBtn.dataset.edit); return;
+    }
 
     const addBtn = e.target.closest('[data-add-project]');
-    if (addBtn) { openEditor(null, addBtn.dataset.addProject); return; }
+    if (addBtn) {
+      if (projectSaveInFlight) { toast('Still saving the current project — one second.', 'info'); return; }
+      if (projectDirty && !confirm('Discard unsaved changes to the project you\'re currently editing?')) return;
+      clearAutosave(AUTOSAVE_PROJECT_KEY);
+      openEditor(null, addBtn.dataset.addProject); return;
+    }
 
     const moveBtn = e.target.closest('[data-move]');
     if (moveBtn) { moveProject(moveBtn.dataset.slug, moveBtn.dataset.move); return; }
+
+    const dupBtn = e.target.closest('[data-duplicate]');
+    if (dupBtn) {
+      if (projectSaveInFlight) { toast('Still saving the current project — one second.', 'info'); return; }
+      if (projectDirty && !confirm('Discard unsaved changes to the project you\'re currently editing?')) return;
+      clearAutosave(AUTOSAVE_PROJECT_KEY);
+      duplicateProject(dupBtn.dataset.duplicate);
+      return;
+    }
   });
 });
+
+// Copies a project's text/structure as a starting point for a new one.
+// Pictures, gallery photos, and files are deliberately NOT copied — reusing
+// the same uploaded file across two independent projects would make the
+// orphan-cleanup in saveProject() (which deletes a file when ONE project
+// stops referencing it) unsafe for the other project still using it. Cheaper
+// and safer to just ask her to re-add images to the copy.
+async function duplicateProject(slug) {
+  try {
+    projectsIndex = await fetchFreshIndex();
+    const entry = projectsIndex.find(p => p.slug === slug);
+    if (!entry || entry.contentType === 'legacy') {
+      toast('That project can\'t be duplicated this way.', 'info');
+      return;
+    }
+    const detail = await gh.getJSON(`data/projects/${slug}.json`) || { blocks: [] };
+
+    editingSlug = null;
+    currentDraft = {
+      slug: null, title: `${entry.title} copy`, href: '', group: entry.group,
+      order: projectsIndex.filter(p => p.group === entry.group).length + 1,
+      contentType: 'managed', thumbnail: {}, thumbnailFile: null,
+      eyebrow: detail.eyebrow || '', metaLine: (detail.meta || []).join(' · '),
+      blocks: stripImagesForDuplicate(detail.blocks && detail.blocks.length ? detail.blocks : [blankBlock('title')])
+    };
+    currentDraft._originalPaths = new Set();
+    projectDirty = true;
+
+    document.getElementById('projectEditor').classList.remove('hidden');
+    document.getElementById('projectEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    renderEditor();
+    toast('Duplicated as a new draft — pictures, gallery photos, files, and the thumbnail need to be re-added.', 'info');
+  } catch (e) {
+    toast('Duplicate failed: ' + e.message, 'err');
+  }
+}
+
+function stripImagesForDuplicate(blocks) {
+  return (blocks || []).map(b => {
+    const copy = { ...b };
+    if (copy.type === 'picture' || copy.type === 'file') copy.src = '';
+    if (copy.type === 'gallery') copy.images = [];
+    if (copy.type === 'group') copy.items = stripImagesForDuplicate(copy.items);
+    return copy;
+  });
+}
 
 async function moveProject(slug, direction) {
   const entry = projectsIndex.find(p => p.slug === slug);
@@ -377,6 +748,11 @@ async function openEditor(slug, groupForNew) {
       eyebrow: '', metaLine: '', blocks: [blankBlock('title')]
     };
   }
+  // Snapshot of every repo-hosted file this project references right now, so
+  // saveProject() can tell which uploads fell out of use (replaced/removed)
+  // and delete them instead of leaving them orphaned in the repo.
+  currentDraft._originalPaths = collectReferencedPaths(currentDraft);
+  projectDirty = false;
   renderEditor();
 }
 
@@ -393,6 +769,7 @@ function renderEditor() {
   document.getElementById('pe-eyebrow').closest('.admin-field').classList.toggle('hidden', legacy);
   document.getElementById('pe-meta').closest('.admin-field').classList.toggle('hidden', legacy);
   document.getElementById('pe-blocks-wrap').classList.toggle('hidden', legacy);
+  document.getElementById('previewProjectBtn').classList.toggle('hidden', legacy);
   document.getElementById('deleteProjectBtn').style.display = currentDraft.slug ? '' : 'none';
 
   if (!legacy) renderBlocks();
@@ -407,8 +784,25 @@ function blockEditorHTML(block, i, gi) {
   const attrs = dataAttrs(i, gi);
   let fields = '';
 
-  if (block.type === 'title' || block.type === 'subtitle') {
-    fields = `<input type="text" placeholder="${BLOCK_LABELS[block.type]} text" value="${(block.text || '').replace(/"/g, '&quot;')}" data-action="text" ${attrs}>`;
+  if (block.type === 'title') {
+    const hasCustom = block.bgColor || block.textColor;
+    fields = `
+      <input type="text" placeholder="Title text" value="${(block.text || '').replace(/"/g, '&quot;')}" data-action="text" ${attrs}>
+      <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-top:0.3rem;">
+        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--a-ink-soft);">
+          Section background
+          <input type="color" value="${block.bgColor || '#fdfbe8'}" data-action="bgColor" ${attrs}>
+        </label>
+        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--a-ink-soft);">
+          Section text
+          <input type="color" value="${block.textColor || '#17152e'}" data-action="textColor" ${attrs}>
+        </label>
+        ${hasCustom ? `<button type="button" class="btn-admin secondary small" data-action="resetSectionColor" ${attrs}>Reset to automatic</button>` : ''}
+      </div>
+      <p class="hint" style="margin:0.2rem 0 0;">${hasCustom ? 'Custom colors — this section starts a new title, so this also colors everything until the next one.' : 'This title starts a new section — leave the colors as-is to use the automatic alternating pattern, or set your own above.'}</p>
+    `;
+  } else if (block.type === 'subtitle') {
+    fields = `<input type="text" placeholder="Subtitle text" value="${(block.text || '').replace(/"/g, '&quot;')}" data-action="text" ${attrs}>`;
   } else if (block.type === 'paragraph') {
     fields = `<textarea placeholder="Paragraph text" data-action="text" ${attrs} rows="3">${block.text || ''}</textarea>`;
   } else if (block.type === 'file') {
@@ -426,15 +820,16 @@ function blockEditorHTML(block, i, gi) {
   } else if (block.type === 'gallery') {
     fields = `
       <input type="file" accept="image/*" multiple data-action="galleryUpload" ${attrs}>
-      <div class="gallery-images">
+      <div class="gallery-images" ${attrs}>
         ${(block.images || []).map((img, imgI) => `
-          <div class="gallery-image-item">
+          <div class="gallery-image-item" ${attrs} data-imgi="${imgI}" draggable="true">
             <img src="${img._previewSrc || img.src}" alt="">
+            <input type="text" class="gallery-alt-input" placeholder="Alt text" value="${(img.alt || '').replace(/"/g, '&quot;')}" data-action="galleryAlt" ${attrs} data-imgi="${imgI}">
             <button data-action="removeGalleryImage" ${attrs} data-imgi="${imgI}" title="Remove">&times;</button>
           </div>
         `).join('')}
       </div>
-      <p class="hint" style="margin:0.3rem 0 0;">Columns and layout are chosen automatically based on how many photos you add.</p>
+      <p class="hint" style="margin:0.3rem 0 0;">Columns and layout are chosen automatically based on how many photos you add. Drag photos to reorder — or drag one into a different Gallery block to move it there.</p>
     `;
   } else if (block.type === 'group') {
     const items = block.items || [];
@@ -454,6 +849,7 @@ function blockEditorHTML(block, i, gi) {
     `;
     return `
       <div class="content-item" data-i="${i}">
+        <span class="drag-handle" draggable="true" title="Drag to reorder">&#8942;&#8942;</span>
         <div class="content-item-fields">
           <strong style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--a-ink-soft);">Group</strong>
           ${fields}
@@ -471,6 +867,7 @@ function blockEditorHTML(block, i, gi) {
   const idx = resolveIndex(i, gi);
   return `
     <div class="content-item" ${attrs}>
+      <span class="drag-handle" draggable="true" title="Drag to reorder">&#8942;&#8942;</span>
       <div class="content-item-fields">
         <strong style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--a-ink-soft);">${BLOCK_LABELS[block.type]}</strong>
         ${fields}
@@ -523,6 +920,8 @@ document.getElementById('pe-blocks').addEventListener('change', (e) => {
     });
     renderBlocks();
   }
+  if (action === 'bgColor') { block.bgColor = t.value; renderBlocks(); }
+  if (action === 'textColor') { block.textColor = t.value; renderBlocks(); }
 });
 
 document.getElementById('pe-blocks').addEventListener('input', (e) => {
@@ -535,6 +934,11 @@ document.getElementById('pe-blocks').addEventListener('input', (e) => {
   if (action === 'text') block.text = t.value;
   if (action === 'alt') block.alt = t.value;
   if (action === 'label') block.label = t.value;
+  if (action === 'galleryAlt') block.images[+t.dataset.imgi].alt = t.value;
+  // bgColor/textColor deliberately NOT handled here — a color <input> fires
+  // 'input' continuously while dragging inside the picker, and renderBlocks()
+  // would replace the DOM mid-drag and close the picker. Handled on 'change'
+  // (fires once, when the picker closes) instead — see below.
 });
 
 document.getElementById('pe-blocks').addEventListener('click', (e) => {
@@ -545,14 +949,23 @@ document.getElementById('pe-blocks').addEventListener('click', (e) => {
   const gi = btn.dataset.gi !== undefined ? +btn.dataset.gi : null;
   const imgi = btn.dataset.imgi !== undefined ? +btn.dataset.imgi : null;
 
+  if (action === 'resetSectionColor') {
+    const block = resolveContainer(i, gi)[resolveIndex(i, gi)];
+    delete block.bgColor; delete block.textColor;
+    renderBlocks();
+    projectDirty = true; autosaveProject();
+    return;
+  }
+
   if (action === 'removeGalleryImage') {
     if (!confirm('Remove this image?')) return;
     const beforeBlocks = cloneForUndo(currentDraft.blocks);
     resolveContainer(i, gi)[resolveIndex(i, gi)].images.splice(imgi, 1);
     renderBlocks();
+    projectDirty = true; autosaveProject();
     toast('Image removed.', 'info', {
       label: 'Undo',
-      onClick: () => { currentDraft.blocks = beforeBlocks; renderBlocks(); }
+      onClick: () => { currentDraft.blocks = beforeBlocks; renderBlocks(); projectDirty = true; autosaveProject(); }
     });
     return;
   }
@@ -566,18 +979,159 @@ document.getElementById('pe-blocks').addEventListener('click', (e) => {
     const beforeBlocks = cloneForUndo(currentDraft.blocks);
     container.splice(idx, 1);
     renderBlocks();
+    projectDirty = true; autosaveProject();
     toast(`${label} removed.`, 'info', {
       label: 'Undo',
-      onClick: () => { currentDraft.blocks = beforeBlocks; renderBlocks(); }
+      onClick: () => { currentDraft.blocks = beforeBlocks; renderBlocks(); projectDirty = true; autosaveProject(); }
     });
   }
-  if (action === 'moveUp' && idx > 0) { swap(container, idx, idx - 1); renderBlocks(); }
-  if (action === 'moveDown' && idx < container.length - 1) { swap(container, idx, idx + 1); renderBlocks(); }
+  if (action === 'moveUp' && idx > 0) { swap(container, idx, idx - 1); renderBlocks(); projectDirty = true; autosaveProject(); }
+  if (action === 'moveDown' && idx < container.length - 1) { swap(container, idx, idx + 1); renderBlocks(); projectDirty = true; autosaveProject(); }
+});
+
+// ---- drag-and-drop reordering (blocks, incl. group items, and gallery photos) ----
+// The up/down buttons above remain as the reliable fallback (native HTML5 DnD
+// has no touch-device equivalent) — this is purely an added convenience.
+let dragState = null; // { kind: 'block'|'gallery', i, gi, imgi? }
+
+function readDragAddr(el) {
+  const gi = el.dataset.gi !== undefined && el.dataset.gi !== '' ? +el.dataset.gi : null;
+  return { i: +el.dataset.i, gi };
+}
+
+document.getElementById('pe-blocks').addEventListener('dragstart', (e) => {
+  const handle = e.target.closest('.drag-handle');
+  if (handle) {
+    const item = handle.closest('.content-item');
+    dragState = { kind: 'block', ...readDragAddr(item) };
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    return;
+  }
+  const galleryItem = e.target.closest('.gallery-image-item');
+  if (galleryItem) {
+    dragState = { kind: 'gallery', ...readDragAddr(galleryItem), imgi: +galleryItem.dataset.imgi };
+    galleryItem.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+});
+
+document.getElementById('pe-blocks').addEventListener('dragover', (e) => {
+  if (!dragState) return;
+  // '.gallery-images' (the container itself) is included so dropping into a
+  // gallery's empty space — including a gallery with no photos yet — still
+  // works, not just dropping precisely onto another photo.
+  const selector = dragState.kind === 'block' ? '.content-item' : '.gallery-image-item, .gallery-images';
+  const target = e.target.closest(selector);
+  if (!target) return;
+  e.preventDefault(); // required to allow a drop here
+  if (!target.classList.contains('drag-over')) {
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+  }
+});
+
+document.getElementById('pe-blocks').addEventListener('drop', (e) => {
+  if (!dragState) return;
+  e.preventDefault();
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+
+  if (dragState.kind === 'block') {
+    const target = e.target.closest('.content-item');
+    if (!target) return;
+    const { i: targetI, gi: targetGi } = readDragAddr(target);
+    const srcContainer = resolveContainer(dragState.i, dragState.gi);
+    const targetContainer = resolveContainer(targetI, targetGi);
+    if (srcContainer !== targetContainer) return; // no dragging between top level and a group's items, or between groups
+    const srcIdx = resolveIndex(dragState.i, dragState.gi);
+    const targetIdx = resolveIndex(targetI, targetGi);
+    if (srcIdx === targetIdx) return;
+    const [moved] = srcContainer.splice(srcIdx, 1);
+    srcContainer.splice(targetIdx, 0, moved);
+  } else {
+    // Dropping on another photo inserts at that photo's position; dropping on
+    // empty gallery space (including an empty gallery) appends to the end —
+    // either way this also allows moving a photo into a DIFFERENT Gallery
+    // block, not just reordering within the one it started in.
+    const target = e.target.closest('.gallery-image-item, .gallery-images');
+    if (!target) return;
+    const { i: targetI, gi: targetGi } = readDragAddr(target);
+    const targetGallery = resolveContainer(targetI, targetGi)[resolveIndex(targetI, targetGi)];
+    const targetImgi = target.classList.contains('gallery-images') ? targetGallery.images.length : +target.dataset.imgi;
+
+    const srcGallery = resolveContainer(dragState.i, dragState.gi)[resolveIndex(dragState.i, dragState.gi)];
+    if (srcGallery === targetGallery && targetImgi === dragState.imgi) return;
+    const [moved] = srcGallery.images.splice(dragState.imgi, 1);
+    targetGallery.images.splice(targetImgi, 0, moved);
+  }
+  renderBlocks();
+  projectDirty = true; autosaveProject();
+});
+
+document.getElementById('pe-blocks').addEventListener('dragend', () => {
+  document.querySelectorAll('.dragging, .drag-over').forEach(el => el.classList.remove('dragging', 'drag-over'));
+  dragState = null;
 });
 
 function swap(arr, i, j) { const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; }
 
+const autosaveProject = debounce(() => {
+  if (!currentDraft || currentDraft.contentType === 'legacy') return;
+  writeAutosave(AUTOSAVE_PROJECT_KEY, {
+    slug: currentDraft.slug,
+    editingSlug,
+    group: document.getElementById('pe-group').value,
+    title: document.getElementById('pe-title').value,
+    eyebrow: document.getElementById('pe-eyebrow').value,
+    metaLine: document.getElementById('pe-meta').value,
+    blocks: serializableBlocks(currentDraft.blocks)
+  });
+}, 800);
+
+// Delegated across the whole editor panel so every text field, select, and
+// file input marks the project dirty and schedules an autosave, without
+// needing a listener on each dynamically-rendered control. Block-editing
+// buttons (remove/move) are NOT covered here — several of those are gated
+// behind a confirm() the user can cancel, and a click still bubbles here even
+// when its own handler bails out early, so marking dirty on click alone would
+// false-positive on a cancelled removal. Those mark dirty explicitly at their
+// actual mutation point instead (see the #pe-blocks click handler below).
+const projectEditorEl = document.getElementById('projectEditor');
+projectEditorEl.addEventListener('input', () => { projectDirty = true; autosaveProject(); });
+projectEditorEl.addEventListener('change', () => { projectDirty = true; autosaveProject(); });
+
+async function checkProjectAutosave() {
+  const stored = readAutosave(AUTOSAVE_PROJECT_KEY);
+  if (!stored) return;
+  const when = new Date(stored.savedAt).toLocaleString();
+  const label = stored.title || '(untitled project)';
+  if (!confirm(`Found an unsaved project draft "${label}" from ${when}. Resume editing it?\n\n(Any picture or file you'd selected but hadn't saved yet will need to be re-added.)`)) {
+    clearAutosave(AUTOSAVE_PROJECT_KEY);
+    return;
+  }
+
+  // Open against the true server baseline first (this also sets up
+  // _originalPaths correctly for orphan cleanup), then overlay the recovered
+  // in-progress edits on top of it.
+  if (stored.editingSlug) await openEditor(stored.editingSlug);
+  else await openEditor(null, stored.group);
+  if (!currentDraft) return; // project vanished server-side; openEditor already reported it
+
+  if (stored.group) currentDraft.group = stored.group;
+  currentDraft.title = stored.title || currentDraft.title;
+  currentDraft.eyebrow = stored.eyebrow || '';
+  currentDraft.metaLine = stored.metaLine || '';
+  if (stored.blocks && stored.blocks.length) currentDraft.blocks = stored.blocks;
+  renderEditor();
+  projectDirty = true;
+  toast('Draft restored — review and save when ready.', 'info');
+}
+
 document.getElementById('cancelEditBtn').addEventListener('click', () => {
+  if (projectSaveInFlight) { toast('Still saving — one second.', 'info'); return; }
+  if (projectDirty && !confirm('Discard unsaved changes to this project?')) return;
+  clearAutosave(AUTOSAVE_PROJECT_KEY);
+  projectDirty = false;
   document.getElementById('projectEditor').classList.add('hidden');
   currentDraft = null; editingSlug = null;
 });
@@ -586,22 +1140,122 @@ document.getElementById('saveProjectBtn').addEventListener('click', (e) => {
   withBusy(e.target, 'Saving…', saveProject);
 });
 
-async function uploadPendingFiles(block) {
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Renders exactly what saveProject() would upload for still-unsaved picture
+// selections — same WebP pass — as data: URLs, so the preview page (a
+// separate tab/window) can show them without anything actually being
+// committed to the repo yet.
+async function buildPreviewBlocks(blocks) {
+  const out = [];
+  for (const b of blocks || []) {
+    const copy = { ...b };
+    if ((copy.type === 'picture' || copy.type === 'file') && copy._pendingFile) {
+      copy.src = await fileToDataURL(await toWebP(copy._pendingFile));
+    }
+    if (copy.type === 'gallery') {
+      copy.images = [];
+      for (const img of (b.images || [])) {
+        const imgCopy = { ...img };
+        if (imgCopy._pendingFile) imgCopy.src = await fileToDataURL(await toWebP(imgCopy._pendingFile));
+        delete imgCopy._pendingFile; delete imgCopy._previewSrc;
+        copy.images.push(imgCopy);
+      }
+    }
+    if (copy.type === 'group') copy.items = await buildPreviewBlocks(copy.items);
+    delete copy._pendingFile; delete copy._previewSrc;
+    out.push(copy);
+  }
+  return out;
+}
+
+document.getElementById('previewProjectBtn').addEventListener('click', async (e) => {
+  if (!currentDraft || currentDraft.contentType === 'legacy') return;
+  withBusy(e.target, 'Preparing preview…', async () => {
+    try {
+      const title = document.getElementById('pe-title').value.trim() || currentDraft.title || 'Untitled';
+      const eyebrow = document.getElementById('pe-eyebrow').value.trim();
+      const metaLine = document.getElementById('pe-meta').value.trim();
+      const previewData = {
+        title, eyebrow,
+        meta: metaLine ? metaLine.split('·').map(s => s.trim()).filter(Boolean) : [],
+        blocks: await buildPreviewBlocks(currentDraft.blocks)
+      };
+      sessionStorage.setItem('zita-preview-draft', JSON.stringify(previewData));
+      window.open('project.html?preview=1', '_blank');
+    } catch (e2) {
+      toast('Could not open preview: ' + e2.message, 'err');
+    }
+  });
+});
+
+function makeUploadReporter(setLabel, total) {
+  let done = 0;
+  return () => {
+    done++;
+    if (setLabel) setLabel(total > 1 ? `Uploading image ${done}/${total}…` : 'Uploading image…');
+  };
+}
+
+// onStep(), if given, is called right before each individual upload starts —
+// used to report "uploading N/M" progress on the save button. Pushes each
+// prepared file into `files` (for a single batched commit) rather than
+// uploading it immediately — the resulting raw.githubusercontent.com URL is
+// deterministic from the path, so block.src can be set right away.
+async function preparePendingFiles(block, files, onStep) {
   if ((block.type === 'file' || block.type === 'picture') && block._pendingFile) {
-    block.src = await gh.uploadImage(block._pendingFile, 'assets/uploads');
+    if (onStep) onStep();
+    const prepared = await gh.prepareUpload(block._pendingFile, 'assets/uploads', { optimize: block.type === 'picture' });
+    files.push({ path: prepared.path, content: prepared.content });
+    block.src = prepared.url;
     delete block._pendingFile; delete block._previewSrc;
   }
   if (block.type === 'gallery') {
     for (const img of block.images) {
       if (img._pendingFile) {
-        img.src = await gh.uploadImage(img._pendingFile, 'assets/uploads');
+        if (onStep) onStep();
+        const prepared = await gh.prepareUpload(img._pendingFile, 'assets/uploads');
+        files.push({ path: prepared.path, content: prepared.content });
+        img.src = prepared.url;
         delete img._pendingFile; delete img._previewSrc;
       }
     }
   }
 }
 
-async function saveProject() {
+function countPendingFiles(blocks) {
+  let n = 0;
+  for (const block of blocks) {
+    if ((block.type === 'file' || block.type === 'picture') && block._pendingFile) n++;
+    if (block.type === 'gallery') n += (block.images || []).filter(img => img._pendingFile).length;
+    if (block.type === 'group') n += countPendingFiles(block.items || []);
+  }
+  return n;
+}
+
+// Screen readers rely on alt text — counts pictures/gallery photos missing it
+// so saveProject() can give a gentle (non-blocking) heads-up before publishing.
+function countMissingAlt(blocks) {
+  let n = 0;
+  for (const block of blocks || []) {
+    if (block.type === 'picture' && !(block.alt || '').trim()) n++;
+    if (block.type === 'gallery') n += (block.images || []).filter(img => !(img.alt || '').trim()).length;
+    if (block.type === 'group') n += countMissingAlt(block.items || []);
+  }
+  return n;
+}
+
+async function saveProject(setLabel) {
+  projectSaveInFlight = true;
+  document.getElementById('projectEditor').classList.add('pe-saving');
+  const draft = currentDraft; // keep working against this project even if currentDraft is later reassigned
   try {
     currentDraft.title = document.getElementById('pe-title').value.trim();
     if (!currentDraft.title) { toast('Give the project a title first.', 'err'); return; }
@@ -609,10 +1263,22 @@ async function saveProject() {
     currentDraft.eyebrow = document.getElementById('pe-eyebrow').value.trim();
     currentDraft.metaLine = document.getElementById('pe-meta').value.trim();
 
+    const missingAlt = countMissingAlt(currentDraft.blocks);
+    if (missingAlt > 0) {
+      const noun = missingAlt === 1 ? 'photo is' : 'photos are';
+      if (!confirm(`${missingAlt} ${noun} missing alt text (used by screen readers to describe images). Save anyway?`)) return;
+    }
+
+    const files = []; // batched into a single commit alongside the JSON writes below
     const thumbFile = document.getElementById('pe-thumb').files[0];
+    const totalUploads = (thumbFile ? 1 : 0) + countPendingFiles(currentDraft.blocks || []);
+    const reportStep = makeUploadReporter(setLabel, totalUploads);
+
     if (thumbFile) {
-      const url = await gh.uploadImage(thumbFile, 'assets/uploads');
-      currentDraft.thumbnail = { src: url, alt: currentDraft.title };
+      reportStep();
+      const prepared = await gh.prepareUpload(thumbFile, 'assets/uploads');
+      files.push({ path: prepared.path, content: prepared.content });
+      currentDraft.thumbnail = { src: prepared.url, alt: currentDraft.title };
     }
 
     const slug = currentDraft.slug || uniqueSlug(slugify(currentDraft.title));
@@ -626,22 +1292,24 @@ async function saveProject() {
         if (!proceed) { toast('Save cancelled — reopen this project to see the latest version.', 'info'); return; }
       }
 
-      // upload any pending files for this project's blocks (including
-      // items nested inside a group block)
+      // prepare any pending files for this project's blocks (including
+      // items nested inside a group block) — uploaded as part of the single
+      // batched commit below, not individually
       for (const block of currentDraft.blocks) {
-        await uploadPendingFiles(block);
+        await preparePendingFiles(block, files, reportStep);
         if (block.type === 'group') {
-          for (const sub of block.items) await uploadPendingFiles(sub);
+          for (const sub of block.items) await preparePendingFiles(sub, files, reportStep);
         }
       }
 
+      if (setLabel) setLabel('Saving details…');
       const detail = {
         title: currentDraft.title,
         eyebrow: currentDraft.eyebrow,
         meta: currentDraft.metaLine ? currentDraft.metaLine.split('·').map(s => s.trim()).filter(Boolean) : [],
         blocks: currentDraft.blocks
       };
-      await gh.putJSON(`data/projects/${slug}.json`, detail, `Update project: ${currentDraft.title}`);
+      files.push({ path: `data/projects/${slug}.json`, content: JSON.stringify(detail, null, 2) });
       currentDraft.href = `project.html?slug=${slug}`;
     }
 
@@ -661,21 +1329,43 @@ async function saveProject() {
     const existingIdx = freshIndex.findIndex(p => p.slug === slug);
     if (existingIdx >= 0) freshIndex[existingIdx] = indexEntry;
     else freshIndex.push(indexEntry);
+    files.push({ path: 'data/projects-index.json', content: JSON.stringify(freshIndex, null, 2) });
 
-    await gh.putJSON('data/projects-index.json', freshIndex, `Save project: ${currentDraft.title}`);
+    // Any file this project referenced when the editor was opened but no
+    // longer references now (thumbnail replaced, picture/file block removed,
+    // gallery photo removed) is now orphaned in the repo — delete it in the
+    // same commit rather than leaving it behind forever.
+    const newPaths = collectReferencedPaths(currentDraft);
+    for (const oldPath of (draft._originalPaths || [])) {
+      if (!newPaths.has(oldPath)) files.push({ path: oldPath, delete: true });
+    }
+
+    await gh.commitBatch(files, `Save project: ${currentDraft.title}`);
     projectsIndex = freshIndex;
 
-    toast('Project saved. GitHub Pages usually rebuilds within ~1 minute.', 'ok');
-    document.getElementById('projectEditor').classList.add('hidden');
-    currentDraft = null; editingSlug = null;
+    toast('Project saved.', 'ok');
+    showBuildStatus();
+    clearAutosave(AUTOSAVE_PROJECT_KEY);
+    // Only clear/hide the editor if it's still showing the project we just
+    // saved — guards against a future entry point reassigning currentDraft
+    // out from under this in-flight save.
+    if (currentDraft === draft) {
+      projectDirty = false;
+      document.getElementById('projectEditor').classList.add('hidden');
+      currentDraft = null; editingSlug = null;
+    }
     renderProjectLists();
   } catch (e) {
     toast('Save failed: ' + e.message, 'err');
+  } finally {
+    projectSaveInFlight = false;
+    document.getElementById('projectEditor').classList.remove('pe-saving');
   }
 }
 
 document.getElementById('deleteProjectBtn').addEventListener('click', async () => {
   if (!currentDraft || !currentDraft.slug) return;
+  if (projectSaveInFlight) { toast('Still saving — one second.', 'info'); return; }
   if (!confirm(`Delete "${currentDraft.title}"? This removes it from the homepage. Its page file (if custom-built) is not deleted.`)) return;
   try {
     const freshBefore = await fetchFreshIndex();
@@ -685,12 +1375,16 @@ document.getElementById('deleteProjectBtn').addEventListener('click', async () =
       : null;
 
     const afterDelete = freshBefore.filter(p => p.slug !== currentDraft.slug);
+    const deleteFiles = [];
     if (currentDraft.contentType !== 'legacy') {
-      await gh.deleteFile(`data/projects/${currentDraft.slug}.json`, `Delete project: ${currentDraft.title}`);
+      deleteFiles.push({ path: `data/projects/${currentDraft.slug}.json`, delete: true });
     }
-    await gh.putJSON('data/projects-index.json', afterDelete, `Delete project: ${currentDraft.title}`);
+    deleteFiles.push({ path: 'data/projects-index.json', content: JSON.stringify(afterDelete, null, 2) });
+    await gh.commitBatch(deleteFiles, `Delete project: ${currentDraft.title}`);
     projectsIndex = afterDelete;
 
+    clearAutosave(AUTOSAVE_PROJECT_KEY);
+    projectDirty = false;
     document.getElementById('projectEditor').classList.add('hidden');
     currentDraft = null; editingSlug = null;
     renderProjectLists();
@@ -699,10 +1393,12 @@ document.getElementById('deleteProjectBtn').addEventListener('click', async () =
       label: 'Undo',
       onClick: async () => {
         try {
-          if (deletedDetail) await gh.putJSON(`data/projects/${deletedEntry.slug}.json`, deletedDetail, `Restore project: ${deletedEntry.title}`);
           const freshNow = await fetchFreshIndex();
           freshNow.push(deletedEntry);
-          await gh.putJSON('data/projects-index.json', freshNow, `Restore project: ${deletedEntry.title}`);
+          const restoreFiles = [];
+          if (deletedDetail) restoreFiles.push({ path: `data/projects/${deletedEntry.slug}.json`, content: JSON.stringify(deletedDetail, null, 2) });
+          restoreFiles.push({ path: 'data/projects-index.json', content: JSON.stringify(freshNow, null, 2) });
+          await gh.commitBatch(restoreFiles, `Restore project: ${deletedEntry.title}`);
           projectsIndex = freshNow;
           renderProjectLists();
           toast('Project restored.', 'ok');

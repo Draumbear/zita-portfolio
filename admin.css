@@ -154,6 +154,34 @@ body.admin-body {
 }
 .toast-action:hover { background: rgba(255,255,255,0.3); }
 
+.build-status {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  z-index: 100;
+  background: #fff;
+  border: 1px solid var(--a-line);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  max-width: 280px;
+}
+.build-status-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--a-bg2);
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+.build-status-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--a-accent);
+}
+.build-status-label { font-size: 0.78rem; color: var(--a-ink-soft); }
+.build-status.done .build-status-bar { display: none; }
+.build-status.done .build-status-label { color: #1e8a3a; }
+
 /* Projects list */
 .project-row {
   display: flex;
@@ -194,7 +222,7 @@ body.admin-body {
 .section-block-head select { width: auto; }
 .content-item {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   gap: 0.6rem;
   align-items: start;
   padding: 0.7rem;
@@ -205,6 +233,18 @@ body.admin-body {
 }
 .content-item-fields { display: flex; flex-direction: column; gap: 0.5rem; }
 .content-item-actions { display: flex; flex-direction: column; gap: 0.3rem; }
+.content-item.drag-over { outline: 2px dashed var(--a-accent); outline-offset: 2px; }
+.content-item.dragging { opacity: 0.4; }
+.drag-handle {
+  cursor: grab;
+  color: var(--a-ink-soft);
+  font-size: 0.85rem;
+  line-height: 1.2;
+  padding: 0.2rem 0.1rem;
+  user-select: none;
+  touch-action: none;
+}
+.drag-handle:active { cursor: grabbing; }
 
 .group-items {
   border-left: 3px solid var(--a-accent);
@@ -213,9 +253,25 @@ body.admin-body {
 }
 .group-items .content-item { background: var(--a-bg2); }
 .group-hint { font-size: 0.75rem; color: var(--a-ink-soft); margin: 0 0 0.5rem; }
-.gallery-images { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; }
-.gallery-image-item { position: relative; width: 72px; }
+.gallery-images { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; min-height: 1.5rem; }
+.gallery-images.drag-over { outline: 2px dashed var(--a-accent); outline-offset: 2px; border-radius: 4px; }
+.gallery-image-item { position: relative; width: 72px; cursor: grab; }
+.gallery-image-item:active { cursor: grabbing; }
+.gallery-image-item.dragging { opacity: 0.4; }
+.gallery-image-item.drag-over { outline: 2px dashed var(--a-accent); outline-offset: 2px; }
 .gallery-image-item img { width: 72px; height: 96px; object-fit: cover; border-radius: 4px; border: 1px solid var(--a-line); }
+.gallery-alt-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.25rem;
+  font-size: 0.62rem;
+  border: 1px solid var(--a-line);
+  border-radius: 4px;
+  background: var(--a-bg);
+  color: var(--a-ink);
+  box-sizing: border-box;
+}
 .gallery-image-item button {
   position: absolute; top: -6px; right: -6px;
   width: 20px; height: 20px; border-radius: 50%;
@@ -224,3 +280,48 @@ body.admin-body {
 }
 
 .hidden { display: none !important; }
+
+/* Media library */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+.media-item {
+  border: 1px solid var(--a-line);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.media-item img { width: 100%; height: 120px; object-fit: cover; display: block; background: var(--a-bg2); }
+.media-file-icon {
+  width: 100%; height: 120px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem;
+  font-size: 2rem; background: var(--a-bg2); color: var(--a-ink-soft);
+}
+.media-file-icon span { font-size: 0.7rem; letter-spacing: 0.06em; }
+.media-meta { padding: 0.6rem 0.7rem 0.3rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.media-name {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.media-size { font-size: 0.7rem; color: var(--a-ink-soft); }
+.media-usage { font-size: 0.68rem; letter-spacing: 0.02em; }
+.media-usage.in-use { color: var(--a-ink-soft); }
+.media-usage.unused { color: #1e8a3a; font-weight: 500; }
+.media-actions { display: flex; gap: 0.4rem; padding: 0.6rem 0.7rem 0.7rem; margin-top: auto; }
+.media-actions .btn-admin { flex: 1; justify-content: center; padding: 0.4rem 0.5rem; font-size: 0.72rem; }
+
+/* Applied to #projectEditor while a save is uploading/committing, so it's
+   unambiguous that this project is locked — Cancel/Delete/editing blocks
+   mid-save could otherwise corrupt the in-flight write. */
+#projectEditor.pe-saving { pointer-events: none; opacity: 0.65; transition: opacity 0.15s; }
+
+/* Applied to #projectEditor while a save is uploading/committing, so it's
+   unambiguous that this project is locked — Cancel/Delete/editing blocks
+   mid-save could otherwise corrupt the in-flight write. */
+#projectEditor.pe-saving { pointer-events: none; opacity: 0.65; transition: opacity 0.15s; }

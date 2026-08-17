@@ -13,7 +13,10 @@
 
 <header class="admin-header">
   <h1>Site Dashboard</h1>
-  <span class="conn-status off" id="connStatus">Not connected</span>
+  <div style="display:flex; align-items:center; gap:1rem;">
+    <a href="#" id="viewLiveLink" class="hint hidden" target="_blank" rel="noopener">View live site &#8599;</a>
+    <span class="conn-status off" id="connStatus">Not connected</span>
+  </div>
 </header>
 
 <main class="admin-main">
@@ -63,6 +66,7 @@
       <div class="admin-tabs">
         <button data-tab="site" class="active">Site &amp; Bio</button>
         <button data-tab="projects">Projects</button>
+        <button data-tab="media">Media</button>
       </div>
       <button class="btn-admin secondary small" id="disconnectBtn">Disconnect</button>
     </div>
@@ -222,10 +226,27 @@
 
         <div style="margin-top:1.4rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
           <button class="btn-admin" id="saveProjectBtn">Save project</button>
+          <button class="btn-admin secondary" id="previewProjectBtn">Preview</button>
           <button class="btn-admin secondary" id="cancelEditBtn">Cancel</button>
           <button class="btn-admin danger" id="deleteProjectBtn" style="margin-left:auto;">Delete project</button>
         </div>
       </div>
+    </section>
+
+    <!-- Media tab -->
+    <section id="tab-media" class="admin-tab hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <span class="hint" id="mediaSyncStatus"></span>
+        <button class="btn-admin secondary small" id="refreshMediaBtn">🔄 Refresh from GitHub</button>
+      </div>
+      <p class="hint" style="margin-bottom:1rem;">
+        Every picture and file ever uploaded through this dashboard, in one place. Each one is
+        labelled with where it's currently used — or "Not used anywhere" if it's safe to delete.
+        Download a picture to move it, delete it here, then re-upload it in the right spot.
+        (Usage is only checked against dashboard-managed content — a custom-built page's own
+        hard-coded images won't show up as "in use" even if it's actually using one.)
+      </p>
+      <div id="mediaGrid" class="media-grid"></div>
     </section>
   </div>
 

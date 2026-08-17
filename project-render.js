@@ -23,7 +23,7 @@ function galleryInnerHTML(images) {
   const columns = images.length <= 2 ? 2 : images.length === 3 ? 3 : 4;
   const stagger = images.length > 2 ? ' stagger' : '';
   const imgsHTML = images.map(img =>
-    `<img src="${escapeHTML(img.src)}" alt="${escapeHTML(img.alt || '')}" loading="lazy">`).join('');
+    `<img src="${escapeHTML(img.src)}" alt="${escapeHTML(img.alt || '')}" loading="lazy" class="lightbox-img">`).join('');
   return { html: `<div class="project-gallery cols-${columns}${stagger}">${imgsHTML}</div>`, columns };
 }
 
@@ -45,7 +45,7 @@ function groupHTML(block) {
     let mediaHTML;
     if (media.type === 'gallery') mediaHTML = galleryInnerHTML(media.images || []).html;
     else if (media.type === 'file') mediaHTML = blockHTML(media);
-    else mediaHTML = `<img src="${escapeHTML(media.src)}" alt="${escapeHTML(media.alt || '')}" loading="lazy" style="cursor:zoom-in;">`;
+    else mediaHTML = `<img src="${escapeHTML(media.src)}" alt="${escapeHTML(media.alt || '')}" loading="lazy" class="lightbox-img" style="cursor:zoom-in;">`;
 
     return `<div class="split${reverse ? ' split--reverse' : ''} reveal">
       <div class="split-text">${textHTML}</div>
@@ -76,7 +76,7 @@ function blockHTML(block) {
       </a>`;
     case 'picture':
       return `<div class="reveal" style="max-width:600px; margin: 0 auto 1.4rem;">
-        <img src="${escapeHTML(block.src)}" alt="${escapeHTML(block.alt || '')}" loading="lazy" style="width:100%; height:auto; border:1px solid var(--line); cursor:zoom-in;">
+        <img src="${escapeHTML(block.src)}" alt="${escapeHTML(block.alt || '')}" loading="lazy" class="lightbox-img" style="width:100%; height:auto; border:1px solid var(--line); cursor:zoom-in;">
       </div>`;
     case 'gallery': {
       const { html } = galleryInnerHTML(block.images || []);
@@ -114,10 +114,22 @@ function bandsHTML(blocks) {
   const bands = groupIntoBands(blocks);
   return bands.map((band, i) => {
     groupAlternator = 0;
-    const bg = BAND_CYCLE[i % BAND_CYCLE.length];
     const wide = bandNeedsWide(band.items);
     const content = band.items.map(blockHTML).join('');
-    return `<div class="band band--${bg}">
+
+    // A band's Title block can override the automatic alternating colours
+    // with a manually picked background/text colour. Falls back to the
+    // automatic cycle whenever neither is set.
+    const titleBlock = band.items.find(b => b.type === 'title');
+    const customBg = titleBlock && titleBlock.bgColor;
+    const customText = titleBlock && titleBlock.textColor;
+    const bandClass = customBg ? '' : ` band--${BAND_CYCLE[i % BAND_CYCLE.length]}`;
+    const styleParts = [];
+    if (customBg) styleParts.push(`background:${escapeHTML(customBg)}`);
+    if (customText) styleParts.push(`color:${escapeHTML(customText)}`);
+    const styleAttr = styleParts.length ? ` style="${styleParts.join(';')}"` : '';
+
+    return `<div class="band${bandClass}"${styleAttr}>
       <div class="band-inner${wide ? ' wide' : ''}">${content}</div>
     </div>`;
   }).join('');
@@ -130,26 +142,32 @@ function renderProjectError(message) {
   if (body) body.innerHTML = '';
 }
 
+// Turns already-loaded project data into the page — split out from
+// renderProject() so the admin dashboard's Preview button can render an
+// in-progress (unsaved) draft the same way, without a data/projects/*.json
+// file existing yet.
+function renderProjectData(data) {
+  document.title = `${data.title} — Zita Decoopman`;
+
+  const eyebrow = document.getElementById('projectEyebrow');
+  const title = document.getElementById('projectTitle');
+  const meta = document.getElementById('projectMeta');
+  if (eyebrow) eyebrow.textContent = data.eyebrow || '';
+  if (title) title.textContent = data.title || '';
+  if (meta) meta.innerHTML = (data.meta || []).map(m => `<span>${escapeHTML(m)}</span>`).join('');
+
+  const body = document.getElementById('projectBody');
+  if (body) body.innerHTML = bandsHTML(data.blocks || []);
+
+  if (window.initProjectInteractions) window.initProjectInteractions();
+}
+
 function renderProject(forcedSlug) {
   const slug = forcedSlug || new URLSearchParams(window.location.search).get('slug');
   if (!slug) { renderProjectError('Project not found'); return; }
 
   fetch(`data/projects/${slug}.json?_=${Date.now()}`, { cache: 'no-store' })
     .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
-    .then(data => {
-      document.title = `${data.title} — Zita Decoopman`;
-
-      const eyebrow = document.getElementById('projectEyebrow');
-      const title = document.getElementById('projectTitle');
-      const meta = document.getElementById('projectMeta');
-      if (eyebrow) eyebrow.textContent = data.eyebrow || '';
-      if (title) title.textContent = data.title || '';
-      if (meta) meta.innerHTML = (data.meta || []).map(m => `<span>${escapeHTML(m)}</span>`).join('');
-
-      const body = document.getElementById('projectBody');
-      if (body) body.innerHTML = bandsHTML(data.blocks || []);
-
-      if (window.initProjectInteractions) window.initProjectInteractions();
-    })
+    .then(renderProjectData)
     .catch(() => renderProjectError('Project not found'));
 }
