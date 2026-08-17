@@ -327,6 +327,8 @@ body.admin-body {
 .layout-icon.vertical .li-text + .li-media,
 .layout-icon.vertical .li-media + .li-text { border-left: none; border-top: 1px solid rgba(255,255,255,0.6); }
 .layout-option-label { font-size: 0.6rem; color: var(--a-ink-soft); text-align: center; white-space: nowrap; }
+.layout-icon.size-icon { align-items: center; justify-content: center; background: var(--a-bg2); }
+.layout-icon.size-icon .li-media { flex: none; border-radius: 2px; }
 
 .section-divider {
   display: flex;

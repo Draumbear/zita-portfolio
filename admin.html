@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
-<link rel="stylesheet" href="admin.css?v=20260817g">
+<link rel="stylesheet" href="admin.css?v=20260817h">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <meta name="robots" content="noindex, nofollow">
@@ -211,6 +211,10 @@
             Build the page from standard blocks, in order. Colours and layout are applied
             automatically — a new coloured section starts each time you add a Title block.
           </p>
+          <div id="groupSelectionBar" style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.6rem;">
+            <span class="hint" id="groupSelectionCount">Select 2+ blocks below to group them.</span>
+            <button type="button" class="btn-admin secondary small" id="makeGroupBtn" disabled>Make Group</button>
+          </div>
           <div id="pe-blocks"></div>
           <select id="addBlockSelect" style="width:auto; margin-top:0.4rem;">
             <option value="">+ Add block…</option>
@@ -258,7 +262,7 @@
      or admin-github.js changes — browsers cache these aggressively, and
      without a version bump a returning visitor can silently keep running old
      code after a deploy. -->
-<script src="admin-github.js?v=20260817g"></script>
-<script src="admin.js?v=20260817g"></script>
+<script src="admin-github.js?v=20260817h"></script>
+<script src="admin.js?v=20260817h"></script>
 </body>
 </html>

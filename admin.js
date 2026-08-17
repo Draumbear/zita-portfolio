@@ -860,12 +860,30 @@ function sectionDividerHTML(titleBlock) {
   return `<div class="section-divider">${swatch}New section — ${label}</div>`;
 }
 
+// Indices into currentDraft.blocks that are checked for the "select blocks,
+// then Make Group" flow. Index-based, so it's cleared on every renderBlocks()
+// call EXCEPT the one triggered by toggling a checkbox itself — otherwise a
+// reorder/add/remove elsewhere in the list (which does call renderBlocks())
+// would silently desync the selection from what's actually checked.
+let selectedBlockIndices = new Set();
+
+function updateGroupSelectionBar() {
+  const countEl = document.getElementById('groupSelectionCount');
+  const btn = document.getElementById('makeGroupBtn');
+  if (!countEl || !btn) return;
+  const n = selectedBlockIndices.size;
+  countEl.textContent = n > 0 ? `${n} block${n === 1 ? '' : 's'} selected.` : 'Select 2+ blocks below to group them.';
+  btn.disabled = n < 2;
+}
+
 function renderBlocks() {
+  selectedBlockIndices.clear();
   const wrap = document.getElementById('pe-blocks');
   wrap.innerHTML = currentDraft.blocks.map((block, i) => {
     const divider = block.type === 'title' && i > 0 ? sectionDividerHTML(block) : '';
     return divider + blockEditorHTML(block, i);
   }).join('');
+  updateGroupSelectionBar();
 }
 
 // WCAG relative-luminance contrast ratio between two hex colors, so the
@@ -918,6 +936,28 @@ function galleryColumnsIcon(value) {
   const cell = value === 'auto' ? 'li-text' : 'li-media';
   return `<span class="layout-icon">${Array.from({ length: n }).map(() => `<span class="${cell}"></span>`).join('')}</span>`;
 }
+function blockSizeIcon(size) {
+  const d = { small: '11px', medium: '17px', large: '23px' }[size];
+  return `<span class="layout-icon size-icon"><span class="li-media" style="width:${d}; height:${d};"></span></span>`;
+}
+function blockSizePickerHTML(block, attrs) {
+  const current = block.size || 'medium';
+  const options = ['small', 'medium', 'large'].map(v => ({
+    value: v, label: v[0].toUpperCase() + v.slice(1), icon: blockSizeIcon(v)
+  }));
+  return `<label class="hint" style="display:block; margin-top:0.4rem;">Size on the page</label>${layoutPickerHTML('blockSize', attrs, options, current)}`;
+}
+
+// Checkbox for the "select blocks, then Make Group" flow — only top-level
+// blocks are selectable (gi == null); Title/Group blocks can't be grouped so
+// their checkbox is disabled rather than letting them be selected and
+// rejected afterward.
+function selectCheckboxHTML(i, gi, type) {
+  if (gi != null) return '';
+  const disallowed = type === 'title' || type === 'group';
+  const checked = selectedBlockIndices.has(i) ? 'checked' : '';
+  return `<input type="checkbox" class="select-block-checkbox" data-action="selectBlock" data-i="${i}" ${checked} ${disallowed ? 'disabled' : ''} title="${disallowed ? "Can't go in a group" : 'Select to group with other blocks'}">`;
+}
 
 function blockEditorHTML(block, i, gi) {
   const attrs = dataAttrs(i, gi);
@@ -958,6 +998,7 @@ function blockEditorHTML(block, i, gi) {
       <input type="file" accept="image/*" data-action="fileCoverUpload" ${attrs}>
       ${coverPreview ? `<img src="${coverPreview}" alt="" style="width:70px;height:90px;object-fit:cover;border-radius:4px;margin-top:0.3rem;">` : ''}
       ${coverPreview ? `<button type="button" class="btn-admin secondary small" data-action="removeFileCover" ${attrs} style="margin-top:0.3rem; width:fit-content;">Remove cover image</button>` : ''}
+      ${blockSizePickerHTML(block, attrs)}
     `;
   } else if (block.type === 'picture') {
     fields = `
@@ -965,6 +1006,7 @@ function blockEditorHTML(block, i, gi) {
       <input type="text" placeholder="Alt text" value="${(block.alt || '').replace(/"/g, '&quot;')}" data-action="alt" ${attrs}>
       ${block.src || block._previewSrc ? `<img src="${block._previewSrc || block.src}" alt="" class="picture-drag-thumb" draggable="true" ${attrs} style="width:70px;height:90px;object-fit:cover;border-radius:4px;">` : ''}
       ${block.src || block._previewSrc ? `<p class="hint" style="margin:0.2rem 0 0;">Drag this photo into a Gallery block to move it there.</p>` : ''}
+      ${blockSizePickerHTML(block, attrs)}
     `;
   } else if (block.type === 'gallery') {
     const currentCols = block.columns && block.columns !== 'auto' ? block.columns : 'auto';
@@ -1030,6 +1072,7 @@ function blockEditorHTML(block, i, gi) {
           ${fields}
         </div>
         <div class="content-item-actions">
+          ${selectCheckboxHTML(i, gi, 'group')}
           <button class="btn-admin secondary small" data-action="moveUp" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
           <button class="btn-admin secondary small" data-action="moveDown" data-i="${i}" ${i === currentDraft.blocks.length - 1 ? 'disabled' : ''}>↓</button>
           <button class="btn-admin danger small" data-action="removeBlock" data-i="${i}">✕</button>
@@ -1048,6 +1091,7 @@ function blockEditorHTML(block, i, gi) {
         ${fields}
       </div>
       <div class="content-item-actions">
+        ${selectCheckboxHTML(i, gi, block.type)}
         <button class="btn-admin secondary small" data-action="moveUp" ${attrs} ${idx === 0 ? 'disabled' : ''}>↑</button>
         <button class="btn-admin secondary small" data-action="moveDown" ${attrs} ${idx === container.length - 1 ? 'disabled' : ''}>↓</button>
         <button class="btn-admin danger small" data-action="removeBlock" ${attrs}>✕</button>
@@ -1063,6 +1107,33 @@ document.getElementById('addBlockSelect').addEventListener('change', (e) => {
   renderBlocks();
 });
 
+// Bundles the currently-checked top-level blocks into a new Group block, in
+// their existing relative order, inserted where the first selected one was —
+// the more direct alternative to dragging them in one at a time.
+document.getElementById('makeGroupBtn').addEventListener('click', () => {
+  if (selectedBlockIndices.size < 2) return;
+  const indices = Array.from(selectedBlockIndices).sort((a, b) => a - b);
+  const GROUP_ALLOWED_TYPES = ['subtitle', 'paragraph', 'file', 'picture', 'gallery'];
+  const invalidIdx = indices.find(idx => !GROUP_ALLOWED_TYPES.includes(currentDraft.blocks[idx].type));
+  if (invalidIdx !== undefined) {
+    toast(`A ${(BLOCK_LABELS[currentDraft.blocks[invalidIdx].type] || 'this').toLowerCase()} block can't go in a group.`, 'err');
+    return;
+  }
+
+  const beforeBlocks = cloneForUndo(currentDraft.blocks);
+  const insertAt = indices[0];
+  const grouped = indices.map(idx => currentDraft.blocks[idx]);
+  for (let k = indices.length - 1; k >= 0; k--) currentDraft.blocks.splice(indices[k], 1);
+  currentDraft.blocks.splice(insertAt, 0, { type: 'group', items: grouped });
+
+  renderBlocks();
+  projectDirty = true; autosaveProject();
+  toast(`Grouped ${grouped.length} blocks.`, 'ok', {
+    label: 'Undo',
+    onClick: () => { currentDraft.blocks = beforeBlocks; renderBlocks(); projectDirty = true; autosaveProject(); }
+  });
+});
+
 document.getElementById('pe-blocks').addEventListener('change', (e) => {
   const t = e.target;
   const action = t.dataset.action;
@@ -1074,6 +1145,14 @@ document.getElementById('pe-blocks').addEventListener('change', (e) => {
     currentDraft.blocks[i].items.push(blankBlock(t.value));
     t.value = '';
     renderBlocks();
+    return;
+  }
+
+  // Deliberately doesn't call renderBlocks() — see selectedBlockIndices'
+  // comment for why a full re-render would clear the selection it's tracking.
+  if (action === 'selectBlock') {
+    if (t.checked) selectedBlockIndices.add(i); else selectedBlockIndices.delete(i);
+    updateGroupSelectionBar();
     return;
   }
 
@@ -1147,10 +1226,11 @@ document.getElementById('pe-blocks').addEventListener('click', (e) => {
     return;
   }
 
-  if (action === 'groupLayout' || action === 'galleryColumns') {
+  if (action === 'groupLayout' || action === 'galleryColumns' || action === 'blockSize') {
     const block = resolveContainer(i, gi)[resolveIndex(i, gi)];
     if (action === 'groupLayout') block.layout = btn.dataset.value;
-    else block.columns = btn.dataset.value;
+    else if (action === 'galleryColumns') block.columns = btn.dataset.value;
+    else block.size = btn.dataset.value;
     renderBlocks();
     projectDirty = true; autosaveProject();
     return;
