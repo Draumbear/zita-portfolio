@@ -17,6 +17,22 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
+// Ctrl/Cmd+S saves whichever thing is actually open — the project editor if
+// it's open, else the Site & Bio form if that tab is active — instead of
+// triggering the browser's own "Save Page As".
+document.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() !== 's' || !(e.ctrlKey || e.metaKey)) return;
+  if (!gh) return;
+  e.preventDefault();
+  if (!document.getElementById('projectEditor').classList.contains('hidden')) {
+    document.getElementById('saveProjectBtn').click();
+  } else if (!document.getElementById('tab-site').classList.contains('hidden')) {
+    document.getElementById('saveSiteBtn').click();
+  } else {
+    toast('Nothing to save on this tab.', 'info');
+  }
+});
+
 // ---------- autosave (local recovery only — never sent anywhere) ----------
 // Saves just enough of the in-progress form to recover from a crashed tab or
 // accidental close. Deliberately does NOT persist File objects (photo/CV/image
@@ -794,9 +810,82 @@ function renderEditor() {
   if (!legacy) renderBlocks();
 }
 
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+// A Title block starts a new colored section on the live page (see
+// project-render.js's band grouping) — this divider makes that boundary
+// visible while scrolling a long block list, which is otherwise a single
+// flat list with no indication of where one section ends and the next
+// begins until you actually read each Title block's text.
+function sectionDividerHTML(titleBlock) {
+  const swatch = titleBlock.bgColor
+    ? `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${escapeHTML(titleBlock.bgColor)}; border:1px solid var(--a-line); margin-right:0.4rem; flex-shrink:0;"></span>`
+    : '';
+  const label = titleBlock.text ? `"${escapeHTML(titleBlock.text)}"` : '(untitled section)';
+  return `<div class="section-divider">${swatch}New section — ${label}</div>`;
+}
+
 function renderBlocks() {
   const wrap = document.getElementById('pe-blocks');
-  wrap.innerHTML = currentDraft.blocks.map((block, i) => blockEditorHTML(block, i)).join('');
+  wrap.innerHTML = currentDraft.blocks.map((block, i) => {
+    const divider = block.type === 'title' && i > 0 ? sectionDividerHTML(block) : '';
+    return divider + blockEditorHTML(block, i);
+  }).join('');
+}
+
+// WCAG relative-luminance contrast ratio between two hex colors, so the
+// section color pickers can warn about a background/text combo that would
+// be genuinely hard to read (e.g. near-white on white) before she saves it.
+function hexToRgb(hex) {
+  const clean = (hex || '').replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+  const n = parseInt(full, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function relLuminance([r, g, b]) {
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c /= 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+function contrastRatio(hex1, hex2) {
+  const l1 = relLuminance(hexToRgb(hex1));
+  const l2 = relLuminance(hexToRgb(hex2));
+  const lighter = Math.max(l1, l2), darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+// Small visual diagram (a two-tone box) per option, so picking a group's
+// text/media arrangement or a gallery's column count is "click the picture
+// that looks right" instead of parsing a sentence in a <select>.
+function layoutPickerHTML(action, attrs, options, current) {
+  return `<div class="layout-picker">
+    ${options.map(o => `
+      <button type="button" class="layout-option${o.value === current ? ' active' : ''}" data-action="${action}" data-value="${o.value}" ${attrs} title="${o.label}">
+        ${o.icon}
+        <span class="layout-option-label">${o.label}</span>
+      </button>
+    `).join('')}
+  </div>`;
+}
+function groupLayoutIcon(kind) {
+  const media = '<span class="li-media"></span>';
+  const text = '<span class="li-text"></span>';
+  if (kind === 'media-right') return `<span class="layout-icon">${text}${media}</span>`;
+  if (kind === 'media-left') return `<span class="layout-icon">${media}${text}</span>`;
+  if (kind === 'media-above') return `<span class="layout-icon vertical">${media}${text}</span>`;
+  if (kind === 'media-below') return `<span class="layout-icon vertical">${text}${media}</span>`;
+  return `<span class="layout-icon"><span class="li-media" style="flex:0.4;"></span><span class="li-text" style="flex:0.6;"></span></span>`; // auto
+}
+function galleryColumnsIcon(value) {
+  const n = value === 'auto' ? 3 : parseInt(value, 10);
+  const cell = value === 'auto' ? 'li-text' : 'li-media';
+  return `<span class="layout-icon">${Array.from({ length: n }).map(() => `<span class="${cell}"></span>`).join('')}</span>`;
 }
 
 function blockEditorHTML(block, i, gi) {
@@ -805,6 +894,9 @@ function blockEditorHTML(block, i, gi) {
 
   if (block.type === 'title') {
     const hasCustom = block.bgColor || block.textColor;
+    const effectiveBg = block.bgColor || '#fdfbe8';
+    const effectiveText = block.textColor || '#17152e';
+    const lowContrast = hasCustom && contrastRatio(effectiveBg, effectiveText) < 3;
     fields = `
       <input type="text" placeholder="Title text" value="${(block.text || '').replace(/"/g, '&quot;')}" data-action="text" ${attrs}>
       <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-top:0.3rem;">
@@ -819,6 +911,7 @@ function blockEditorHTML(block, i, gi) {
         ${hasCustom ? `<button type="button" class="btn-admin secondary small" data-action="resetSectionColor" ${attrs}>Reset to automatic</button>` : ''}
       </div>
       <p class="hint" style="margin:0.2rem 0 0;">${hasCustom ? 'Custom colors — this section starts a new title, so this also colors everything until the next one.' : 'This title starts a new section — leave the colors as-is to use the automatic alternating pattern, or set your own above.'}</p>
+      ${lowContrast ? `<p class="hint" style="color:var(--a-danger); margin:0.2rem 0 0;">⚠ Low contrast — this text may be hard to read on this background.</p>` : ''}
     `;
   } else if (block.type === 'subtitle') {
     fields = `<input type="text" placeholder="Subtitle text" value="${(block.text || '').replace(/"/g, '&quot;')}" data-action="text" ${attrs}>`;
@@ -843,18 +936,15 @@ function blockEditorHTML(block, i, gi) {
       ${block.src || block._previewSrc ? `<p class="hint" style="margin:0.2rem 0 0;">Drag this photo into a Gallery block to move it there.</p>` : ''}
     `;
   } else if (block.type === 'gallery') {
+    const currentCols = block.columns && block.columns !== 'auto' ? block.columns : 'auto';
+    const columnsOptions = ['auto', '2', '3', '4'].map(v => ({
+      value: v, label: v === 'auto' ? 'Auto' : v, icon: galleryColumnsIcon(v)
+    }));
     fields = `
       <input type="file" accept="image/*" multiple data-action="galleryUpload" ${attrs}>
-      <div style="display:flex; gap:1.2rem; flex-wrap:wrap; align-items:center; margin-top:0.4rem;">
-        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--a-ink-soft);">
-          Columns
-          <select data-action="galleryColumns" ${attrs} style="width:auto;">
-            <option value="auto" ${!block.columns || block.columns === 'auto' ? 'selected' : ''}>Automatic</option>
-            <option value="2" ${block.columns === '2' ? 'selected' : ''}>2</option>
-            <option value="3" ${block.columns === '3' ? 'selected' : ''}>3</option>
-            <option value="4" ${block.columns === '4' ? 'selected' : ''}>4</option>
-          </select>
-        </label>
+      <label class="hint" style="display:block; margin-top:0.4rem;">Columns</label>
+      ${layoutPickerHTML('galleryColumns', attrs, columnsOptions, currentCols)}
+      <div style="display:flex; gap:1.2rem; flex-wrap:wrap; align-items:center; margin-top:0.5rem;">
         <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--a-ink-soft);">
           <input type="checkbox" data-action="galleryUniform" ${attrs} ${block.uniform === false ? '' : 'checked'}>
           Crop photos to a consistent grid
@@ -877,17 +967,17 @@ function blockEditorHTML(block, i, gi) {
     `;
   } else if (block.type === 'group') {
     const items = block.items || [];
+    const currentLayout = block.layout || 'auto';
+    const layoutOptions = [
+      { value: 'auto', label: 'Auto', icon: groupLayoutIcon('auto') },
+      { value: 'media-right', label: 'Media right', icon: groupLayoutIcon('media-right') },
+      { value: 'media-left', label: 'Media left', icon: groupLayoutIcon('media-left') },
+      { value: 'media-above', label: 'Media above', icon: groupLayoutIcon('media-above') },
+      { value: 'media-below', label: 'Media below', icon: groupLayoutIcon('media-below') }
+    ];
     fields = `
-      <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--a-ink-soft); margin-bottom:0.4rem;">
-        Layout
-        <select data-action="groupLayout" ${attrs} style="width:auto;">
-          <option value="auto" ${!block.layout || block.layout === 'auto' ? 'selected' : ''}>Automatic</option>
-          <option value="media-right" ${block.layout === 'media-right' ? 'selected' : ''}>Text left, media right</option>
-          <option value="media-left" ${block.layout === 'media-left' ? 'selected' : ''}>Text right, media left</option>
-          <option value="media-above" ${block.layout === 'media-above' ? 'selected' : ''}>Media above text</option>
-          <option value="media-below" ${block.layout === 'media-below' ? 'selected' : ''}>Media below text</option>
-        </select>
-      </label>
+      <label class="hint" style="display:block; margin-bottom:0.3rem;">Layout</label>
+      ${layoutPickerHTML('groupLayout', attrs, layoutOptions, currentLayout)}
       <p class="group-hint">Text + one picture, gallery or file will be laid out side by side automatically; anything more is bound together in a bordered card — pick a layout above to control this yourself. Media with no text next to it is centered on its own instead of stretched into a card.</p>
       <div class="group-items">
         ${items.map((sub, subI) => blockEditorHTML(sub, i, subI)).join('') || '<p class="hint">Empty — add an item below.</p>'}
@@ -981,10 +1071,8 @@ document.getElementById('pe-blocks').addEventListener('change', (e) => {
   }
   if (action === 'bgColor') { block.bgColor = t.value; renderBlocks(); }
   if (action === 'textColor') { block.textColor = t.value; renderBlocks(); }
-  if (action === 'galleryColumns') { block.columns = t.value; renderBlocks(); }
   if (action === 'galleryUniform') { block.uniform = t.checked; renderBlocks(); }
   if (action === 'galleryStagger') { block.stagger = t.checked; renderBlocks(); }
-  if (action === 'groupLayout') { block.layout = t.value; renderBlocks(); }
 });
 
 document.getElementById('pe-blocks').addEventListener('input', (e) => {
@@ -1023,6 +1111,15 @@ document.getElementById('pe-blocks').addEventListener('click', (e) => {
   if (action === 'removeFileCover') {
     const block = resolveContainer(i, gi)[resolveIndex(i, gi)];
     delete block.coverSrc; delete block._pendingCoverFile; delete block._coverPreviewSrc;
+    renderBlocks();
+    projectDirty = true; autosaveProject();
+    return;
+  }
+
+  if (action === 'groupLayout' || action === 'galleryColumns') {
+    const block = resolveContainer(i, gi)[resolveIndex(i, gi)];
+    if (action === 'groupLayout') block.layout = btn.dataset.value;
+    else block.columns = btn.dataset.value;
     renderBlocks();
     projectDirty = true; autosaveProject();
     return;
