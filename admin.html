@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="admin.css?v=20260817q">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -87,6 +88,40 @@
             <button type="button" class="btn-admin secondary small" id="resetAccentBtn">Reset to default</button>
           </div>
           <p class="hint">Used for links, buttons, hover states and highlights across the whole live site — the portfolio grid, project pages, and this default color included.</p>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h2>Portfolio Categories</h2>
+        <p class="hint" style="margin-bottom:1rem;">The heading shown above each group of project cards on the live site. (This is just the display text — the two categories themselves, and where each project is filed, are set on the Projects tab.)</p>
+        <div class="admin-row">
+          <div class="admin-field">
+            <label for="f-groupLabelFashion">Fashion Technology heading</label>
+            <input type="text" id="f-groupLabelFashion" placeholder="Projects at Fashion Technology">
+          </div>
+          <div class="admin-field">
+            <label for="f-groupLabelPersonal">Personal Projects heading</label>
+            <input type="text" id="f-groupLabelPersonal" placeholder="Personal Projects">
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h2>Social Links</h2>
+        <p class="hint" style="margin-bottom:1rem;">Shown as icons in the site footer on every page. Leave blank to hide.</p>
+        <div class="admin-row">
+          <div class="admin-field">
+            <label for="f-socialInstagram">Instagram URL</label>
+            <input type="url" id="f-socialInstagram" placeholder="https://instagram.com/...">
+          </div>
+          <div class="admin-field">
+            <label for="f-socialLinkedin">LinkedIn URL</label>
+            <input type="url" id="f-socialLinkedin" placeholder="https://linkedin.com/in/...">
+          </div>
+        </div>
+        <div class="admin-field">
+          <label for="f-socialBehance">Behance URL</label>
+          <input type="url" id="f-socialBehance" placeholder="https://behance.net/...">
         </div>
       </div>
 
@@ -283,6 +318,6 @@
      without a version bump a returning visitor can silently keep running old
      code after a deploy. -->
 <script src="admin-github.js?v=20260817o"></script>
-<script src="admin.js?v=20260817q"></script>
+<script src="admin.js?v=20260817r"></script>
 </body>
 </html>

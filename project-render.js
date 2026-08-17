@@ -224,6 +224,19 @@ function renderProjectData(data) {
   const body = document.getElementById('projectBody');
   if (body) body.innerHTML = bandsHTML(data.blocks || []);
 
+  // Overrides script.js's site-wide defaults with this specific project's
+  // own title/description/image, so a link to this page shared on
+  // iMessage/LinkedIn/Slack previews the right project, not the homepage.
+  const setMeta = (id, val) => { const el = document.getElementById(id); if (el && val) el.setAttribute('content', val); };
+  const blocks = data.blocks || [];
+  const firstParagraph = blocks.find(b => b.type === 'paragraph' && b.text);
+  const firstImage = blocks.find(b => b.type === 'picture' && b.src)
+    || (blocks.find(b => b.type === 'gallery' && b.images && b.images[0]) || {}).images?.[0];
+  const description = firstParagraph ? firstParagraph.text.replace(/<[^>]+>/g, '').slice(0, 200) : (data.meta || []).join(' · ');
+  setMeta('ogTitle', `${data.title} — Zita Decoopman`);
+  if (description) { setMeta('ogDescription', description); setMeta('metaDescription', description); }
+  if (firstImage && firstImage.src) setMeta('ogImage', firstImage.src);
+
   if (window.initProjectInteractions) window.initProjectInteractions();
 }
 

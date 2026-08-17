@@ -438,6 +438,27 @@ h1, h2, h3, h4 {
   background-position: center 30%;
 }
 .site-footer p { position: relative; z-index: 1; }
+.social-links {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: 1.1rem;
+  margin-bottom: 1rem;
+}
+.social-links:empty { display: none; margin-bottom: 0; }
+.social-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--ink-soft);
+  transition: color 0.2s, border-color 0.2s, transform 0.2s;
+}
+.social-links a:hover { color: var(--accent); border-color: var(--accent); transform: translateY(-2px); }
 
 /* Project detail pages */
 .project-hero {

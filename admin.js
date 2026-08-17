@@ -331,6 +331,13 @@ async function loadSite() {
   markSynced('siteSyncStatus');
   const set = (id, val) => { document.getElementById(id).value = val || ''; };
   setAccentInputs(siteData.accentColor);
+  const groupLabels = siteData.groupLabels || {};
+  set('f-groupLabelFashion', groupLabels['fashion-technology']);
+  set('f-groupLabelPersonal', groupLabels['personal']);
+  const social = siteData.social || {};
+  set('f-socialInstagram', social.instagram);
+  set('f-socialLinkedin', social.linkedin);
+  set('f-socialBehance', social.behance);
   set('f-heroEyebrow', siteData.heroEyebrow);
   set('f-heroSub', siteData.heroSub);
   set('f-heroName', (siteData.heroName || '').replace(/<br>/g, '\n'));
@@ -352,6 +359,11 @@ async function loadSite() {
 const autosaveSite = debounce(() => {
   writeAutosave(AUTOSAVE_SITE_KEY, {
     accentColor: document.getElementById('f-accentColorHex').value,
+    groupLabelFashion: document.getElementById('f-groupLabelFashion').value,
+    groupLabelPersonal: document.getElementById('f-groupLabelPersonal').value,
+    socialInstagram: document.getElementById('f-socialInstagram').value,
+    socialLinkedin: document.getElementById('f-socialLinkedin').value,
+    socialBehance: document.getElementById('f-socialBehance').value,
     heroEyebrow: document.getElementById('f-heroEyebrow').value,
     heroName: document.getElementById('f-heroName').value,
     heroSub: document.getElementById('f-heroSub').value,
@@ -364,7 +376,7 @@ const autosaveSite = debounce(() => {
   });
 }, 800);
 
-document.querySelectorAll('#tab-site input[type="text"], #tab-site input[type="email"], #tab-site textarea').forEach(el => {
+document.querySelectorAll('#tab-site input[type="text"], #tab-site input[type="email"], #tab-site input[type="url"], #tab-site textarea').forEach(el => {
   el.addEventListener('input', () => { siteDirty = true; autosaveSite(); });
 });
 // File selections can't be autosaved (Files don't survive localStorage) but
@@ -382,6 +394,11 @@ function checkSiteAutosave() {
   }
   const set = (id, val) => { document.getElementById(id).value = val || ''; };
   setAccentInputs(draft.accentColor);
+  set('f-groupLabelFashion', draft.groupLabelFashion);
+  set('f-groupLabelPersonal', draft.groupLabelPersonal);
+  set('f-socialInstagram', draft.socialInstagram);
+  set('f-socialLinkedin', draft.socialLinkedin);
+  set('f-socialBehance', draft.socialBehance);
   set('f-heroEyebrow', draft.heroEyebrow);
   set('f-heroName', draft.heroName);
   set('f-heroSub', draft.heroSub);
@@ -431,6 +448,15 @@ document.getElementById('saveSiteBtn').addEventListener('click', (e) => {
 
       const updated = {
         accentColor: document.getElementById('f-accentColorHex').value || ACCENT_DEFAULT,
+        groupLabels: {
+          'fashion-technology': document.getElementById('f-groupLabelFashion').value.trim() || 'Projects at Fashion Technology',
+          'personal': document.getElementById('f-groupLabelPersonal').value.trim() || 'Personal Projects'
+        },
+        social: {
+          instagram: document.getElementById('f-socialInstagram').value.trim(),
+          linkedin: document.getElementById('f-socialLinkedin').value.trim(),
+          behance: document.getElementById('f-socialBehance').value.trim()
+        },
         heroEyebrow: document.getElementById('f-heroEyebrow').value,
         heroName: document.getElementById('f-heroName').value.replace(/\n/g, '<br>'),
         heroSub: document.getElementById('f-heroSub').value,

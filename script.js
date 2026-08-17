@@ -1,11 +1,12 @@
 document.getElementById('year').textContent = new Date().getFullYear();
 
-// Site-wide accent color, set from the dashboard (data/site.json's
-// accentColor). Runs on every page (this file is shared by index.html,
-// project.html, and the legacy project pages) so a color picked once in
-// the Site & Bio tab applies everywhere without editing CSS by hand.
-// Falls back silently to styles.css's built-in --accent if unset or the
-// fetch fails (e.g. opened from disk without a server).
+// Site-wide settings driven by the dashboard's Site & Bio tab (data/site.json):
+// accent color, footer social links, portfolio category headings, and default
+// social-preview (Open Graph) tags. Runs on every page (this file is shared
+// by index.html, project.html, the legacy project pages, and 404.html) so
+// these apply everywhere without editing HTML/CSS by hand. Falls back
+// silently to whatever's already in the static HTML if the fetch fails
+// (e.g. opened from disk without a server) or a field is unset.
 function darkenHex(hex, amount) {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!m) return hex;
@@ -13,13 +14,53 @@ function darkenHex(hex, amount) {
   const [r, g, b] = [1, 2, 3].map(i => clamp(Math.round(parseInt(m[i], 16) * (1 - amount))));
   return `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`;
 }
+
+// Minimal inline icon set (no icon-font/CDN dependency) — currentColor so
+// they pick up .social-links' link color automatically, hover included.
+const SOCIAL_ICONS = {
+  instagram: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+  linkedin: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4.98 3.5C4.98 4.88 3.9 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.5 8h4V23h-4V8zM8.5 8h3.8v2.05h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V23h-4v-6.9c0-1.65-.03-3.77-2.3-3.77-2.3 0-2.65 1.8-2.65 3.65V23h-4V8z"/></svg>',
+  behance: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7.8 10.6c1.4-.6 2.1-1.7 2.1-3.2 0-2.7-2-3.9-4.6-3.9H0v16h5.5c2.9 0 5.4-1.4 5.4-4.4 0-1.9-1-3.1-3.1-4.5zM3 6.2h2.2c1.1 0 2 .4 2 1.6 0 1.1-.8 1.7-2 1.7H3V6.2zm2.5 10.4H3v-3.9h2.6c1.4 0 2.3.6 2.3 1.9 0 1.4-1 2-2.4 2zM24 13.4c0-3.5-2-6-5.6-6-3.5 0-5.9 2.6-5.9 6.1 0 3.6 2.3 6 6 6 2.7 0 4.6-1.2 5.4-3.5h-2.8c-.3.8-1.2 1.3-2.5 1.3-1.8 0-2.8-1-2.9-2.7h8.2c0-.4.1-.8.1-1.2zm-8.3-1.3c.2-1.4 1.1-2.3 2.6-2.3 1.4 0 2.3 1 2.4 2.3h-5zM14.5 5h7v1.7h-7z"/></svg>'
+};
+const SOCIAL_LABELS = { instagram: 'Instagram', linkedin: 'LinkedIn', behance: 'Behance' };
+
+function renderSocialLinks(social) {
+  const wrap = document.getElementById('socialLinks');
+  if (!wrap || !social) return;
+  const html = Object.keys(SOCIAL_ICONS)
+    .filter(key => social[key])
+    .map(key => `<a href="${social[key]}" target="_blank" rel="noopener" aria-label="${SOCIAL_LABELS[key]}" title="${SOCIAL_LABELS[key]}">${SOCIAL_ICONS[key]}</a>`)
+    .join('');
+  wrap.innerHTML = html;
+  wrap.classList.toggle('hidden', !html);
+}
+
 fetch('data/site.json?_=' + Date.now(), { cache: 'no-store' })
   .then(r => r.ok ? r.json() : null)
   .then(site => {
-    if (site && site.accentColor) {
+    if (!site) return;
+    if (site.accentColor) {
       document.documentElement.style.setProperty('--accent', site.accentColor);
       document.documentElement.style.setProperty('--accent-dark', darkenHex(site.accentColor, 0.22));
     }
+    renderSocialLinks(site.social);
+
+    if (site.groupLabels) {
+      const fashion = document.getElementById('groupTitleFashion');
+      const personal = document.getElementById('groupTitlePersonal');
+      if (fashion && site.groupLabels['fashion-technology']) fashion.textContent = site.groupLabels['fashion-technology'];
+      if (personal && site.groupLabels['personal']) personal.textContent = site.groupLabels['personal'];
+    }
+
+    // Default social-preview tags — pages with their own dynamic content
+    // (project.html via project-render.js) override these once loaded.
+    const setMeta = (id, val) => { const el = document.getElementById(id); if (el && val) el.setAttribute('content', val); };
+    if (site.heroName && site.aboutParagraphs && site.aboutParagraphs[0]) {
+      setMeta('ogTitle', `${site.heroName.replace(/<br>/g, ' ')} — Portfolio`);
+      setMeta('ogDescription', site.aboutParagraphs[0]);
+      setMeta('metaDescription', site.aboutParagraphs[0]);
+    }
+    if (site.aboutPhoto && site.aboutPhoto.src) setMeta('ogImage', site.aboutPhoto.src);
   })
   .catch(() => {});
 
