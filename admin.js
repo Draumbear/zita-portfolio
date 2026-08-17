@@ -1043,8 +1043,8 @@ function blockEditorHTML(block, i, gi) {
     `;
   } else if (block.type === 'gallery') {
     const currentCols = block.columns && block.columns !== 'auto' ? block.columns : 'auto';
-    const columnsOptions = ['auto', '2', '3', '4'].map(v => ({
-      value: v, label: v === 'auto' ? 'Auto' : v, icon: galleryColumnsIcon(v)
+    const columnsOptions = ['auto', '1', '2', '3', '4'].map(v => ({
+      value: v, label: v === 'auto' ? 'Auto' : v === '1' ? 'Vertical' : v, icon: galleryColumnsIcon(v)
     }));
     fields = `
       <input type="file" accept="image/*" multiple data-action="galleryUpload" ${attrs}>
