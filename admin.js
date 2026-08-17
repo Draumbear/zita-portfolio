@@ -11,6 +11,11 @@ let siteDirty = false;    // true if the Site & Bio form has unsaved edits
 let projectDirty = false; // true if the open project editor has unsaved edits
 
 window.addEventListener('beforeunload', (e) => {
+  // Flush synchronously: the debounced autosave may not have fired yet if the
+  // page unloads within its 800ms window (e.g. type-then-reload), which would
+  // otherwise silently drop the draft despite the warning below.
+  if (siteDirty) autosaveSite.flush();
+  if (projectDirty) autosaveProject.flush();
   if (siteDirty || projectDirty || projectSaveInFlight) {
     e.preventDefault();
     e.returnValue = '';
@@ -53,7 +58,11 @@ function clearAutosave(key) {
 }
 function debounce(fn, ms) {
   let t;
-  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  const debounced = (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  // Runs fn immediately, bypassing the pending timer — used on beforeunload so a
+  // reload that happens before the debounce window elapses doesn't lose the draft.
+  debounced.flush = (...args) => { clearTimeout(t); fn(...args); };
+  return debounced;
 }
 
 // Strips non-serializable per-block state (pending File objects, blob: preview
