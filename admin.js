@@ -978,9 +978,9 @@ function blockEditorHTML(block, i, gi) {
     fields = `
       <label class="hint" style="display:block; margin-bottom:0.3rem;">Layout</label>
       ${layoutPickerHTML('groupLayout', attrs, layoutOptions, currentLayout)}
-      <p class="group-hint">Text + one picture, gallery or file will be laid out side by side automatically; anything more is bound together in a bordered card — pick a layout above to control this yourself. Media with no text next to it is centered on its own instead of stretched into a card.</p>
-      <div class="group-items">
-        ${items.map((sub, subI) => blockEditorHTML(sub, i, subI)).join('') || '<p class="hint">Empty — add an item below.</p>'}
+      <p class="group-hint">Text + one picture, gallery or file will be laid out side by side automatically; anything more is bound together in a bordered card — pick a layout above to control this yourself. Media with no text next to it is centered on its own instead of stretched into a card. Drag an existing block here (by its ⋮⋮ handle) to move it into this group.</p>
+      <div class="group-items" data-i="${i}">
+        ${items.map((sub, subI) => blockEditorHTML(sub, i, subI)).join('') || '<p class="hint">Empty — drag a block here, or add one below.</p>'}
       </div>
       <select data-action="addGroupItem" data-i="${i}" style="width:auto;">
         <option value="">+ Add item to group…</option>
@@ -1193,10 +1193,10 @@ document.getElementById('pe-blocks').addEventListener('dragstart', (e) => {
 
 document.getElementById('pe-blocks').addEventListener('dragover', (e) => {
   if (!dragState) return;
-  // '.gallery-images' (the container itself) is included so dropping into a
-  // gallery's empty space — including a gallery with no photos yet — still
-  // works, not just dropping precisely onto another photo.
-  const selector = dragState.kind === 'block' ? '.content-item' : '.gallery-image-item, .gallery-images';
+  // '.gallery-images'/'.group-items' (the containers themselves) are included
+  // so dropping into empty space — an empty gallery, or a group with nothing
+  // in it yet — still works, not just dropping precisely onto an existing item.
+  const selector = dragState.kind === 'block' ? '.content-item, .group-items' : '.gallery-image-item, .gallery-images';
   const target = e.target.closest(selector);
   if (!target) return;
   e.preventDefault(); // required to allow a drop here
@@ -1212,17 +1212,38 @@ document.getElementById('pe-blocks').addEventListener('drop', (e) => {
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 
   if (dragState.kind === 'block') {
-    const target = e.target.closest('.content-item');
+    const target = e.target.closest('.content-item, .group-items');
     if (!target) return;
-    const { i: targetI, gi: targetGi } = readDragAddr(target);
     const srcContainer = resolveContainer(dragState.i, dragState.gi);
-    const targetContainer = resolveContainer(targetI, targetGi);
-    if (srcContainer !== targetContainer) return; // no dragging between top level and a group's items, or between groups
     const srcIdx = resolveIndex(dragState.i, dragState.gi);
-    const targetIdx = resolveIndex(targetI, targetGi);
-    if (srcIdx === targetIdx) return;
+    const movedType = srcContainer[srcIdx].type;
+
+    // Dropped directly on a group's item area (including an empty group) —
+    // append into that group. Otherwise resolve the target the normal way;
+    // targetGi != null means the drop landed on an item that's itself inside
+    // a group, so this move also lands inside that same group.
+    let targetContainer, targetIdx, targetIsGroupItems;
+    if (target.classList.contains('group-items')) {
+      targetContainer = currentDraft.blocks[+target.dataset.i].items;
+      targetIdx = targetContainer.length;
+      targetIsGroupItems = true;
+    } else {
+      const { i: targetI, gi: targetGi } = readDragAddr(target);
+      targetContainer = resolveContainer(targetI, targetGi);
+      targetIdx = resolveIndex(targetI, targetGi);
+      targetIsGroupItems = targetGi != null;
+    }
+
+    // Matches what the group's own "+ Add item to group" dropdown offers —
+    // a group can't contain a Title or another Group.
+    if (targetIsGroupItems && !['subtitle', 'paragraph', 'file', 'picture', 'gallery'].includes(movedType)) {
+      toast(`A ${(BLOCK_LABELS[movedType] || 'this').toLowerCase()} block can't go inside a group.`, 'err');
+      return;
+    }
+
+    if (srcContainer === targetContainer && srcIdx === targetIdx) return;
     const [moved] = srcContainer.splice(srcIdx, 1);
-    srcContainer.splice(targetIdx, 0, moved);
+    targetContainer.splice(targetIdx, 0, moved);
   } else if (dragState.kind === 'picture') {
     // Moves a standalone Picture block's image into a Gallery block — the
     // picture block itself is removed (its image now lives in the gallery
