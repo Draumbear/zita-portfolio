@@ -836,6 +836,7 @@ function renderEditor() {
   document.getElementById('pe-meta').closest('.admin-field').classList.toggle('hidden', legacy);
   document.getElementById('pe-blocks-wrap').classList.toggle('hidden', legacy);
   document.getElementById('previewProjectBtn').classList.toggle('hidden', legacy);
+  document.getElementById('groupSelectionControls').classList.toggle('hidden', legacy);
   document.getElementById('deleteProjectBtn').style.display = currentDraft.slug ? '' : 'none';
 
   if (!legacy) renderBlocks();
