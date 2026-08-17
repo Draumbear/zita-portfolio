@@ -505,6 +505,26 @@ h1, h2, h3, h4 {
 }
 .band--dark .file-block .file-info span { color: rgba(253,251,232,0.65); }
 
+/* Cover-image variant: the file shows an actual preview (e.g. a document's
+   cover page) stacked above the label, instead of a generic icon beside it. */
+.file-block--cover {
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 320px;
+  padding: 0;
+  overflow: hidden;
+  margin-left: auto;
+  margin-right: auto;
+}
+.file-block--cover img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-bottom: 1px solid var(--line);
+}
+.band--dark .file-block--cover img { border-color: rgba(253,251,232,0.25); }
+.file-block--cover .file-info { padding: 0.9rem 1.1rem 1.1rem; }
+
 /* Binds a run of blocks (e.g. text + a gallery + a file) into one visual unit
    when they don't fit the simple text/media split layout. */
 .content-group {
@@ -518,6 +538,18 @@ h1, h2, h3, h4 {
 .content-group > *:last-child { margin-bottom: 0; }
 .content-group .project-gallery { margin-top: 1rem; }
 .content-group .file-block { margin-top: 1rem; margin-bottom: 0; }
+
+/* A group's media with no text alongside it — rendered constrained/centered
+   like a standalone block would be, instead of stretched into a full-width
+   bordered card where it just sits alone. */
+.group-media-only { max-width: 600px; margin: 0 auto 1.4rem; }
+.group-media-only .project-gallery { margin-top: 0; }
+.group-media-only > *:not(:last-child) { margin-bottom: 1.4rem; }
+
+/* Multiple media items sharing one side of a split, or stacked above/below
+   the text (explicit group layout choices). */
+.split-media-stack, .group-media-stack { display: flex; flex-direction: column; gap: 1.4rem; }
+.group-media-stack { margin-bottom: 1.4rem; }
 
 /* Alternating background bands */
 .band {
@@ -586,6 +618,11 @@ h1, h2, h3, h4 {
   cursor: zoom-in;
   transition: transform 0.4s cubic-bezier(.2,.7,.3,1), box-shadow 0.4s;
 }
+/* Default — crops every photo to the same cell shape so the grid lines up
+   regardless of each photo's original aspect ratio (mixing portrait and
+   landscape photos with natural height otherwise produces a ragged,
+   uneven-looking grid). Galleries can opt out of this per-block. */
+.project-gallery.uniform img { aspect-ratio: 3 / 4; object-fit: cover; }
 .project-gallery img:hover {
   transform: scale(1.03);
   box-shadow: 0 12px 32px rgba(23,21,46,0.16);

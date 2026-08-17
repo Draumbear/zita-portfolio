@@ -46,6 +46,7 @@ function serializableBlocks(blocks) {
   return (blocks || []).map(b => {
     const copy = { ...b };
     delete copy._pendingFile; delete copy._previewSrc;
+    delete copy._pendingCoverFile; delete copy._coverPreviewSrc;
     if (copy.images) copy.images = copy.images.map(img => { const c = { ...img }; delete c._pendingFile; delete c._previewSrc; return c; });
     if (copy.items) copy.items = serializableBlocks(copy.items);
     return copy;
@@ -64,6 +65,7 @@ function collectReferencedPaths(project) {
   const walk = (blocks) => {
     for (const b of blocks || []) {
       if ((b.type === 'file' || b.type === 'picture') && b.src) add(b.src);
+      if (b.type === 'file' && b.coverSrc) add(b.coverSrc);
       if (b.type === 'gallery') (b.images || []).forEach(img => add(img.src));
       if (b.type === 'group') walk(b.items);
     }
@@ -657,6 +659,7 @@ function stripImagesForDuplicate(blocks) {
   return (blocks || []).map(b => {
     const copy = { ...b };
     if (copy.type === 'picture' || copy.type === 'file') copy.src = '';
+    if (copy.type === 'file') copy.coverSrc = '';
     if (copy.type === 'gallery') copy.images = [];
     if (copy.type === 'group') copy.items = stripImagesForDuplicate(copy.items);
     return copy;
@@ -806,10 +809,15 @@ function blockEditorHTML(block, i, gi) {
   } else if (block.type === 'paragraph') {
     fields = `<textarea placeholder="Paragraph text" data-action="text" ${attrs} rows="3">${block.text || ''}</textarea>`;
   } else if (block.type === 'file') {
+    const coverPreview = block._coverPreviewSrc || block.coverSrc;
     fields = `
       <input type="text" placeholder="Label (e.g. Download CV)" value="${(block.label || '').replace(/"/g, '&quot;')}" data-action="label" ${attrs}>
       <input type="file" data-action="fileUpload" ${attrs}>
       ${block.src || block._pendingFile ? `<span class="hint">${block._pendingFile ? block._pendingFile.name : 'File attached'}</span>` : ''}
+      <label class="hint" style="display:block; margin-top:0.3rem;">Cover image (optional — shown as a preview instead of a generic file icon)</label>
+      <input type="file" accept="image/*" data-action="fileCoverUpload" ${attrs}>
+      ${coverPreview ? `<img src="${coverPreview}" alt="" style="width:70px;height:90px;object-fit:cover;border-radius:4px;margin-top:0.3rem;">` : ''}
+      ${coverPreview ? `<button type="button" class="btn-admin secondary small" data-action="removeFileCover" ${attrs} style="margin-top:0.3rem; width:fit-content;">Remove cover image</button>` : ''}
     `;
   } else if (block.type === 'picture') {
     fields = `
@@ -821,6 +829,25 @@ function blockEditorHTML(block, i, gi) {
   } else if (block.type === 'gallery') {
     fields = `
       <input type="file" accept="image/*" multiple data-action="galleryUpload" ${attrs}>
+      <div style="display:flex; gap:1.2rem; flex-wrap:wrap; align-items:center; margin-top:0.4rem;">
+        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--a-ink-soft);">
+          Columns
+          <select data-action="galleryColumns" ${attrs} style="width:auto;">
+            <option value="auto" ${!block.columns || block.columns === 'auto' ? 'selected' : ''}>Automatic</option>
+            <option value="2" ${block.columns === '2' ? 'selected' : ''}>2</option>
+            <option value="3" ${block.columns === '3' ? 'selected' : ''}>3</option>
+            <option value="4" ${block.columns === '4' ? 'selected' : ''}>4</option>
+          </select>
+        </label>
+        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--a-ink-soft);">
+          <input type="checkbox" data-action="galleryUniform" ${attrs} ${block.uniform === false ? '' : 'checked'}>
+          Crop photos to a consistent grid
+        </label>
+        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--a-ink-soft);">
+          <input type="checkbox" data-action="galleryStagger" ${attrs} ${block.stagger === false ? '' : 'checked'}>
+          Offset alternating photos
+        </label>
+      </div>
       <div class="gallery-images" ${attrs}>
         ${(block.images || []).map((img, imgI) => `
           <div class="gallery-image-item" ${attrs} data-imgi="${imgI}" draggable="true">
@@ -830,12 +857,22 @@ function blockEditorHTML(block, i, gi) {
           </div>
         `).join('')}
       </div>
-      <p class="hint" style="margin:0.3rem 0 0;">Columns and layout are chosen automatically based on how many photos you add. Drag photos to reorder — or drag one into a different Gallery block to move it there.</p>
+      <p class="hint" style="margin:0.3rem 0 0;">Drag photos to reorder — or drag one into a different Gallery block to move it there.</p>
     `;
   } else if (block.type === 'group') {
     const items = block.items || [];
     fields = `
-      <p class="group-hint">Text + one picture, gallery or file will be laid out side by side automatically; anything more is bound together in a bordered card.</p>
+      <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem; color:var(--a-ink-soft); margin-bottom:0.4rem;">
+        Layout
+        <select data-action="groupLayout" ${attrs} style="width:auto;">
+          <option value="auto" ${!block.layout || block.layout === 'auto' ? 'selected' : ''}>Automatic</option>
+          <option value="media-right" ${block.layout === 'media-right' ? 'selected' : ''}>Text left, media right</option>
+          <option value="media-left" ${block.layout === 'media-left' ? 'selected' : ''}>Text right, media left</option>
+          <option value="media-above" ${block.layout === 'media-above' ? 'selected' : ''}>Media above text</option>
+          <option value="media-below" ${block.layout === 'media-below' ? 'selected' : ''}>Media below text</option>
+        </select>
+      </label>
+      <p class="group-hint">Text + one picture, gallery or file will be laid out side by side automatically; anything more is bound together in a bordered card — pick a layout above to control this yourself. Media with no text next to it is centered on its own instead of stretched into a card.</p>
       <div class="group-items">
         ${items.map((sub, subI) => blockEditorHTML(sub, i, subI)).join('') || '<p class="hint">Empty — add an item below.</p>'}
       </div>
@@ -921,8 +958,17 @@ document.getElementById('pe-blocks').addEventListener('change', (e) => {
     });
     renderBlocks();
   }
+  if (action === 'fileCoverUpload' && t.files[0]) {
+    block._pendingCoverFile = t.files[0];
+    block._coverPreviewSrc = URL.createObjectURL(t.files[0]);
+    renderBlocks();
+  }
   if (action === 'bgColor') { block.bgColor = t.value; renderBlocks(); }
   if (action === 'textColor') { block.textColor = t.value; renderBlocks(); }
+  if (action === 'galleryColumns') { block.columns = t.value; renderBlocks(); }
+  if (action === 'galleryUniform') { block.uniform = t.checked; renderBlocks(); }
+  if (action === 'galleryStagger') { block.stagger = t.checked; renderBlocks(); }
+  if (action === 'groupLayout') { block.layout = t.value; renderBlocks(); }
 });
 
 document.getElementById('pe-blocks').addEventListener('input', (e) => {
@@ -953,6 +999,14 @@ document.getElementById('pe-blocks').addEventListener('click', (e) => {
   if (action === 'resetSectionColor') {
     const block = resolveContainer(i, gi)[resolveIndex(i, gi)];
     delete block.bgColor; delete block.textColor;
+    renderBlocks();
+    projectDirty = true; autosaveProject();
+    return;
+  }
+
+  if (action === 'removeFileCover') {
+    const block = resolveContainer(i, gi)[resolveIndex(i, gi)];
+    delete block.coverSrc; delete block._pendingCoverFile; delete block._coverPreviewSrc;
     renderBlocks();
     projectDirty = true; autosaveProject();
     return;
@@ -1194,6 +1248,9 @@ async function buildPreviewBlocks(blocks) {
     if ((copy.type === 'picture' || copy.type === 'file') && copy._pendingFile) {
       copy.src = await fileToDataURL(await toWebP(copy._pendingFile));
     }
+    if (copy.type === 'file' && copy._pendingCoverFile) {
+      copy.coverSrc = await fileToDataURL(await toWebP(copy._pendingCoverFile));
+    }
     if (copy.type === 'gallery') {
       copy.images = [];
       for (const img of (b.images || [])) {
@@ -1205,6 +1262,7 @@ async function buildPreviewBlocks(blocks) {
     }
     if (copy.type === 'group') copy.items = await buildPreviewBlocks(copy.items);
     delete copy._pendingFile; delete copy._previewSrc;
+    delete copy._pendingCoverFile; delete copy._coverPreviewSrc;
     out.push(copy);
   }
   return out;
@@ -1251,6 +1309,13 @@ async function preparePendingFiles(block, files, onStep) {
     block.src = prepared.url;
     delete block._pendingFile; delete block._previewSrc;
   }
+  if (block.type === 'file' && block._pendingCoverFile) {
+    if (onStep) onStep();
+    const prepared = await gh.prepareUpload(block._pendingCoverFile, 'assets/uploads', { optimize: true });
+    files.push({ path: prepared.path, content: prepared.content });
+    block.coverSrc = prepared.url;
+    delete block._pendingCoverFile; delete block._coverPreviewSrc;
+  }
   if (block.type === 'gallery') {
     for (const img of block.images) {
       if (img._pendingFile) {
@@ -1268,6 +1333,7 @@ function countPendingFiles(blocks) {
   let n = 0;
   for (const block of blocks) {
     if ((block.type === 'file' || block.type === 'picture') && block._pendingFile) n++;
+    if (block.type === 'file' && block._pendingCoverFile) n++;
     if (block.type === 'gallery') n += (block.images || []).filter(img => img._pendingFile).length;
     if (block.type === 'group') n += countPendingFiles(block.items || []);
   }

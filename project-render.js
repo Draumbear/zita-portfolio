@@ -19,41 +19,70 @@ function fileExt(src) {
   return m ? m[1].toUpperCase() : 'FILE';
 }
 
-function galleryInnerHTML(images) {
-  const columns = images.length <= 2 ? 2 : images.length === 3 ? 3 : 4;
-  const stagger = images.length > 2 ? ' stagger' : '';
+// `block` (optional) carries the dashboard's per-gallery overrides:
+// columns ('auto'|'2'|'3'|'4'), uniform (crop every photo to a consistent
+// grid cell — the default, since letting each photo's native aspect ratio
+// dictate its cell size is what produced the "random"-looking uneven grids),
+// and stagger (offset alternating photos — auto-on for 3+ photos unless
+// explicitly turned off).
+function galleryInnerHTML(images, block) {
+  const count = images.length;
+  const colsOverride = block && block.columns && block.columns !== 'auto' ? parseInt(block.columns, 10) : null;
+  const columns = colsOverride || (count <= 2 ? 2 : count === 3 ? 3 : 4);
+  const stagger = (block && block.stagger === false) ? false : count > 2;
+  const uniform = !(block && block.uniform === false);
+  const classes = `project-gallery cols-${columns}${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
   const imgsHTML = images.map(img =>
     `<img src="${escapeHTML(img.src)}" alt="${escapeHTML(img.alt || '')}" loading="lazy" class="lightbox-img">`).join('');
-  return { html: `<div class="project-gallery cols-${columns}${stagger}">${imgsHTML}</div>`, columns };
+  return { html: `<div class="${classes}">${imgsHTML}</div>`, columns };
 }
 
-// A running counter (reset per band in bandsHTML) so consecutive groups
-// alternate text-left/text-right instead of all facing the same way.
+// A running counter (reset per band in bandsHTML) so consecutive auto-layout
+// groups alternate text-left/text-right instead of all facing the same way.
 let groupAlternator = 0;
+
+function groupMediaHTML(media) {
+  if (media.type === 'gallery') return galleryInnerHTML(media.images || [], media).html;
+  return blockHTML(media);
+}
 
 function groupHTML(block) {
   const items = block.items || [];
   const mediaTypes = ['picture', 'gallery', 'file'];
   const mediaItems = items.filter(i => mediaTypes.includes(i.type));
   const textItems = items.filter(i => !mediaTypes.includes(i.type));
+  const layout = block.layout || 'auto';
 
-  // Simple pairing (one media item + some text): lay it out side by side.
-  if (mediaItems.length === 1 && textItems.length >= 1) {
-    const media = mediaItems[0];
-    const reverse = groupAlternator++ % 2 === 1;
+  // Media with nothing beside it shouldn't be stretched into a full-width
+  // bordered card, where it just sits alone on the page — render it
+  // constrained/centered instead, the way a standalone block would be.
+  if (mediaItems.length && textItems.length === 0) {
+    return `<div class="group-media-only reveal">${mediaItems.map(groupMediaHTML).join('')}</div>`;
+  }
+
+  const explicitSide = layout === 'media-left' || layout === 'media-right';
+  const autoSide = layout === 'auto' && mediaItems.length === 1;
+  if (mediaItems.length && textItems.length && (explicitSide || autoSide)) {
+    const reverse = layout === 'media-left' ? true : layout === 'media-right' ? false : (groupAlternator++ % 2 === 1);
     const textHTML = textItems.map(blockHTML).join('');
-    let mediaHTML;
-    if (media.type === 'gallery') mediaHTML = galleryInnerHTML(media.images || []).html;
-    else if (media.type === 'file') mediaHTML = blockHTML(media);
-    else mediaHTML = `<img src="${escapeHTML(media.src)}" alt="${escapeHTML(media.alt || '')}" loading="lazy" class="lightbox-img" style="cursor:zoom-in;">`;
-
+    const mediaHTML = mediaItems.length === 1
+      ? groupMediaHTML(mediaItems[0])
+      : `<div class="split-media-stack">${mediaItems.map(groupMediaHTML).join('')}</div>`;
     return `<div class="split${reverse ? ' split--reverse' : ''} reveal">
       <div class="split-text">${textHTML}</div>
       <div class="split-media">${mediaHTML}</div>
     </div>`;
   }
 
-  // Anything richer than a simple pair: bind it visually with a bordered card.
+  if (layout === 'media-above' || layout === 'media-below') {
+    const mediaHTML = `<div class="group-media-stack">${mediaItems.map(groupMediaHTML).join('')}</div>`;
+    const textHTML = textItems.map(blockHTML).join('');
+    const ordered = layout === 'media-above' ? mediaHTML + textHTML : textHTML + mediaHTML;
+    return `<div class="content-group reveal">${ordered}</div>`;
+  }
+
+  // Fallback (auto layout with more than one media item, or nothing else
+  // matched): bind everything together in a bordered card, authored order.
   const inner = items.map(blockHTML).join('');
   return `<div class="content-group reveal">${inner}</div>`;
 }
@@ -66,20 +95,27 @@ function blockHTML(block) {
       return `<h3 class="reveal">${escapeHTML(block.text)}</h3>`;
     case 'paragraph':
       return `<p class="reveal">${block.text || ''}</p>`;
-    case 'file':
-      return `<a class="file-block reveal" href="${escapeHTML(block.src)}" target="_blank" rel="noopener">
-        <span class="file-icon">📄</span>
+    case 'file': {
+      // With a cover image set, the file shows as an actual preview (e.g. a
+      // document's cover page) instead of a generic file icon — still just a
+      // download link, click anywhere on it to get the file.
+      const preview = block.coverSrc
+        ? `<img src="${escapeHTML(block.coverSrc)}" alt="" loading="lazy">`
+        : `<span class="file-icon">📄</span>`;
+      return `<a class="file-block${block.coverSrc ? ' file-block--cover' : ''} reveal" href="${escapeHTML(block.src)}" target="_blank" rel="noopener">
+        ${preview}
         <span class="file-info">
           <strong>${escapeHTML(block.label || 'Download file')}</strong>
           <span>${fileExt(block.src)}</span>
         </span>
       </a>`;
+    }
     case 'picture':
       return `<div class="reveal" style="max-width:600px; margin: 0 auto 1.4rem;">
         <img src="${escapeHTML(block.src)}" alt="${escapeHTML(block.alt || '')}" loading="lazy" class="lightbox-img" style="width:100%; height:auto; border:1px solid var(--line); cursor:zoom-in;">
       </div>`;
     case 'gallery': {
-      const { html } = galleryInnerHTML(block.images || []);
+      const { html } = galleryInnerHTML(block.images || [], block);
       return html.replace('class="project-gallery', 'class="project-gallery reveal');
     }
     case 'group':
