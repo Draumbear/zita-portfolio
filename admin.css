@@ -121,11 +121,18 @@ body.admin-body {
 
 .admin-tab[hidden] { display: none; }
 
-.toast {
+.toast-container {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
   z-index: 100;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.6rem;
+  align-items: flex-end;
+  pointer-events: none;
+}
+.toast {
   display: flex;
   align-items: center;
   gap: 0.8rem;
@@ -134,6 +141,7 @@ body.admin-body {
   font-size: 0.85rem;
   max-width: 360px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  pointer-events: auto;
 }
 .toast.ok { background: #1e8a3a; color: #fff; }
 .toast.err { background: var(--a-danger); color: #fff; }

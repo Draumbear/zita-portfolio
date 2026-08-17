@@ -99,6 +99,22 @@ async function checkNotStale(path, loadedSha, whatChanged) {
 
 // ---------- helpers ----------
 
+function toastContainer() {
+  let el = document.getElementById('toastContainer');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toastContainer';
+    el.className = 'toast-container';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+// Toasts land in a shared fixed-position container and stack via normal flow
+// (newest closest to the corner) — appending each one to document.body with
+// its own fixed position, as before, made simultaneous toasts (e.g. an Undo
+// toast still showing when another action toasts) render exactly on top of
+// each other instead of stacking.
 function toast(message, type = 'info', action) {
   const el = document.createElement('div');
   el.className = `toast ${type}`;
@@ -110,7 +126,7 @@ function toast(message, type = 'info', action) {
     btn.addEventListener('click', () => { action.onClick(); el.remove(); });
     el.appendChild(btn);
   }
-  document.body.appendChild(el);
+  toastContainer().appendChild(el);
   const timeout = action ? 8000 : 4200;
   const timer = setTimeout(() => el.remove(), timeout);
   el.addEventListener('click', (e) => { if (e.target === el) { clearTimeout(timer); el.remove(); } });
