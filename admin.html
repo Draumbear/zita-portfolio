@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
-<link rel="stylesheet" href="admin.css?v=20260817k">
+<link rel="stylesheet" href="admin.css?v=20260817l">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <meta name="robots" content="noindex, nofollow">
@@ -224,9 +224,12 @@
           </select>
         </div>
 
-        <!-- Sticky so Save/Preview/Cancel/Delete and Make Group are always
-             reachable without scrolling back up or down a long block list. -->
-        <div class="pe-action-bar">
+        <!-- Fixed so Save/Preview/Cancel/Delete and Make Group are always
+             reachable without scrolling to reach them from anywhere in a
+             long block list. Collapsible via the handle, in case it's in
+             the way — preference remembered across sessions. -->
+        <div class="pe-action-bar" id="peActionBar">
+          <button type="button" class="pe-action-bar-toggle" id="toggleActionBarBtn" title="Hide this bar">▾</button>
           <span id="groupSelectionControls" style="display:flex; align-items:center; gap:0.6rem;">
             <span class="hint" id="groupSelectionCount">Select 2+ blocks to group them.</span>
             <button type="button" class="btn-admin secondary small" id="makeGroupBtn" disabled>Make Group</button>
@@ -265,7 +268,7 @@
      or admin-github.js changes — browsers cache these aggressively, and
      without a version bump a returning visitor can silently keep running old
      code after a deploy. -->
-<script src="admin-github.js?v=20260817k"></script>
-<script src="admin.js?v=20260817k"></script>
+<script src="admin-github.js?v=20260817l"></script>
+<script src="admin.js?v=20260817l"></script>
 </body>
 </html>

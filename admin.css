@@ -417,3 +417,25 @@ body.admin-body {
 }
 #projectEditor { padding-bottom: 4.5rem; }
 .pe-action-spacer { flex: 1; }
+
+.pe-action-bar-toggle {
+  border: none;
+  background: none;
+  color: var(--a-ink-soft);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0.3rem 0.4rem;
+  flex-shrink: 0;
+}
+.pe-action-bar-toggle:hover { color: var(--a-ink); }
+
+/* Collapsed to a small handle at the bottom-right, in case the bar is in
+   the way — click it again to bring the buttons back. */
+.pe-action-bar.collapsed {
+  max-width: none;
+  left: auto;
+  padding: 0.4rem 0.6rem;
+  border-radius: 999px 999px 0 0;
+}
+.pe-action-bar.collapsed > *:not(.pe-action-bar-toggle) { display: none; }

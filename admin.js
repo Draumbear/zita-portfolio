@@ -1469,7 +1469,10 @@ async function checkProjectAutosave() {
 
 document.getElementById('cancelEditBtn').addEventListener('click', () => {
   if (projectSaveInFlight) { toast('Still saving — one second.', 'info'); return; }
-  if (projectDirty && !confirm('Discard unsaved changes to this project?')) return;
+  // Always confirms now, not just when dirty — the action bar being fixed
+  // on screen makes this a lot easier to hit by accident than it used to be.
+  const msg = projectDirty ? 'Discard unsaved changes to this project?' : 'Close this project?';
+  if (!confirm(msg)) return;
   clearAutosave(AUTOSAVE_PROJECT_KEY);
   projectDirty = false;
   document.getElementById('projectEditor').classList.add('hidden');
@@ -1763,5 +1766,25 @@ document.getElementById('deleteProjectBtn').addEventListener('click', async () =
     toast('Delete failed: ' + e.message, 'err');
   }
 });
+
+// The action bar's collapsed/expanded state is a personal preference, not
+// per-project data, so it lives in its own localStorage key and applies
+// immediately on load rather than waiting for a project to be opened.
+const ACTION_BAR_COLLAPSED_KEY = 'zita-admin-actionbar-collapsed';
+const actionBarEl = document.getElementById('peActionBar');
+const actionBarToggleEl = document.getElementById('toggleActionBarBtn');
+
+function setActionBarCollapsed(collapsed) {
+  actionBarEl.classList.toggle('collapsed', collapsed);
+  actionBarToggleEl.textContent = collapsed ? '▴' : '▾';
+  actionBarToggleEl.title = collapsed ? 'Show actions' : 'Hide this bar';
+}
+actionBarToggleEl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const collapsed = !actionBarEl.classList.contains('collapsed');
+  setActionBarCollapsed(collapsed);
+  localStorage.setItem(ACTION_BAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+});
+setActionBarCollapsed(localStorage.getItem(ACTION_BAR_COLLAPSED_KEY) === '1');
 
 initConnect();
