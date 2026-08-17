@@ -263,36 +263,6 @@ h1, h2, h3, h4 {
 
 .card { display: block; cursor: pointer; }
 
-/* Small pill that follows the cursor while hovering a portfolio card —
-   positioned/animated from script.js, styling only here. Desktop-with-mouse
-   only (see the hover/pointer + reduced-motion checks in script.js), so it
-   never shows on touch devices where there's no persistent cursor anyway. */
-.cursor-follow {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 60;
-  pointer-events: none;
-  display: inline-flex;
-  align-items: center;
-  padding: 0.6rem 1.4rem;
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--cream);
-  font-family: var(--sans);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  white-space: nowrap;
-  opacity: 0;
-  /* transform's translate component is driven every frame from script.js
-     (cursor tracking); only the trailing scale() there changes with
-     .visible, so this transition animates just that scale in/out. */
-  transition: opacity 0.25s, transform 0.25s;
-  will-change: transform, opacity;
-}
-.cursor-follow.visible { opacity: 1; }
-
 .card-img {
   aspect-ratio: 3 / 4.2;
   overflow: hidden;

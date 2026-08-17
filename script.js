@@ -81,60 +81,6 @@ document.addEventListener('error', (e) => {
   }
 }, true);
 
-// Small "View Project" pill that follows the cursor while hovering a
-// portfolio card, instead of a static hover state. Desktop-with-mouse only
-// (no persistent cursor on touch, and reduced-motion users get no motion
-// effect at all). Uses event delegation on document rather than binding to
-// each .card directly, because site-data.js replaces the grid's DOM after
-// its own async fetch resolves — delegated listeners survive that; ones
-// bound to the original elements wouldn't.
-(function initCursorFollow() {
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-  const pill = document.createElement('div');
-  pill.className = 'cursor-follow';
-  pill.textContent = 'View Project';
-  pill.setAttribute('aria-hidden', 'true');
-
-  let active = false, appended = false, raf = null;
-  let curX = 0, curY = 0, targetX = 0, targetY = 0;
-
-  function loop() {
-    curX += (targetX - curX) * 0.25;
-    curY += (targetY - curY) * 0.25;
-    pill.style.transform = `translate(${curX}px, ${curY}px) translate(-50%, -50%) scale(${active ? 1 : 0.6})`;
-    if (active || Math.abs(targetX - curX) > 0.5 || Math.abs(targetY - curY) > 0.5) {
-      raf = requestAnimationFrame(loop);
-    } else {
-      raf = null;
-    }
-  }
-
-  document.addEventListener('mouseover', (e) => {
-    const card = e.target.closest('.card');
-    if (!card || (e.relatedTarget && card.contains(e.relatedTarget))) return;
-    if (!appended) { document.body.appendChild(pill); appended = true; }
-    active = true;
-    targetX = curX = e.clientX;
-    targetY = curY = e.clientY;
-    pill.classList.add('visible');
-    if (!raf) raf = requestAnimationFrame(loop);
-  });
-  document.addEventListener('mousemove', (e) => {
-    if (!active) return;
-    targetX = e.clientX;
-    targetY = e.clientY;
-  });
-  document.addEventListener('mouseout', (e) => {
-    const card = e.target.closest('.card');
-    if (!card || (e.relatedTarget && card.contains(e.relatedTarget))) return;
-    active = false;
-    pill.classList.remove('visible');
-    if (!raf) raf = requestAnimationFrame(loop);
-  });
-})();
-
 const navToggle = document.getElementById('navToggle');
 const navLinks = document.getElementById('navLinks');
 
