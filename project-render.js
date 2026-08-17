@@ -20,49 +20,67 @@ function fileExt(src) {
 }
 
 // `block` (optional) carries the dashboard's per-gallery overrides:
-// columns ('auto'|'1'..'6'), uniform (crop every photo to a consistent grid
-// cell — the default, since letting each photo's native aspect ratio dictate
-// its cell size is what produced the "random"-looking uneven grids), stagger
-// (offset alternating photos — auto-on for 3+ photos unless explicitly
-// turned off), align (left/center/right — only visible once Columns is set
-// explicitly, see below; defaults to center), and size, which means one of
-// two different things depending on Columns:
-//   - Columns explicit (1–6): size caps the whole gallery's rendered width
-//     (like a standalone Picture's size), photos then split that width N ways.
-//   - Columns 'auto' (default): size is a per-photo TARGET width instead —
-//     each photo renders at that fixed size regardless of how many photos are
-//     in this particular gallery, wrapping to more rows rather than shrinking
-//     the photos. This is what makes "Small" look the same everywhere; sizing
-//     by container width instead (as this used to work) meant two "Small"
-//     galleries with different photo counts rendered at very different
-//     per-photo scales, which just read as broken.
-const GALLERY_SIZE_MAP = { xs: '420px', small: '620px', medium: '820px', large: '1040px' };
+// columns ('auto'|'1'..'6' — with an explicit count, wraps after that many
+// per row instead of using all available width), uniform (crop every photo
+// to a consistent cell — the default, since letting each photo's native
+// aspect ratio dictate its cell size is what produced the "random"-looking
+// uneven grids), stagger (offset alternating photos — auto-on for 3+ photos
+// unless explicitly turned off), size (each photo's fixed target width — the
+// SAME width regardless of how many photos are in this particular gallery or
+// how many columns it's set to, which is the whole point: a "Small" gallery
+// should look like "Small" everywhere on the site, not shrink because this
+// one happens to have more photos or a higher column count than another),
+// and align (left/center/right — where the row of (fixed-size) photos sits
+// when it doesn't fill the full available width, e.g. an explicit low column
+// count, or simply fewer photos than fit in one row).
+//
+// Laid out as a wrapping flexbox rather than CSS Grid specifically so that
+// unfilled space is real spare space `justify-content` can act on — a grid
+// with repeat(auto-fill/auto-fit, ...) reserves invisible empty tracks for
+// column slots wider than the photo count needs, which "align" can't see
+// past to correctly position the actual visible photos.
 const GALLERY_CELL_SIZE = { auto: '240px', xs: '110px', small: '160px', medium: '220px', large: '300px' };
+const GALLERY_JUSTIFY = { left: 'flex-start', center: 'center', right: 'flex-end' };
 const GALLERY_ALIGN_MARGIN = { left: '0 auto 0 0', center: '0 auto', right: '0 0 0 auto' };
 function galleryInnerHTML(images, block) {
   const count = images.length;
   const explicitCols = block && block.columns && block.columns !== 'auto' ? parseInt(block.columns, 10) : null;
   const stagger = (block && block.stagger === false) ? false : count > 2;
   const uniform = !(block && block.uniform === false);
+  const cell = GALLERY_CELL_SIZE[(block && block.size) || 'auto'];
+  const justify = GALLERY_JUSTIFY[(block && block.align) || 'center'];
 
-  let classes, styleAttr = '';
+  const classes = `project-gallery${explicitCols ? ' cols-' + explicitCols : ''}${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
+  // display:flex opts this gallery into the flex-based, consistently-sized
+  // layout in styles.css (the base .project-gallery class defaults to grid,
+  // for the older hand-built pages that set their own cols-N with no sizing
+  // control) — everything else here is a custom property, not a literal
+  // inline size, because the mobile swipe breakpoint needs to override the
+  // per-photo width with its own percentage-based value, and an inline style
+  // would always beat a stylesheet media-query rule regardless of viewport.
+  const styleParts = [`display:flex`, `--gallery-cell:${cell}`, `justify-content:${justify}`];
   if (explicitCols) {
-    classes = `project-gallery cols-${explicitCols}${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
-    const maxW = block && block.size && GALLERY_SIZE_MAP[block.size];
-    if (maxW) {
-      const margin = GALLERY_ALIGN_MARGIN[(block && block.align) || 'center'];
-      styleAttr = ` style="max-width:${maxW}; margin:${margin};"`;
-    }
-  } else {
-    classes = `project-gallery${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
-    const cell = GALLERY_CELL_SIZE[(block && block.size) || 'auto'];
-    // Fixed track size (not minmax(...,1fr)) so photos hold their target
-    // width instead of stretching to fill a half-empty last row.
-    styleAttr = ` style="grid-template-columns:repeat(auto-fill, ${cell});"`;
+    // Caps the row at exactly N photos wide (any more wrap to the next row)
+    // by capping the container to N cells + the gaps between them, instead
+    // of letting flex-wrap pack in as many as fit the available width. Based
+    // on whichever is smaller — the chosen column count or the actual photo
+    // count — so e.g. "4 columns" with only 2 photos doesn't reserve two
+    // phantom empty slots that align would otherwise be positioning around.
+    // A custom property, not a literal max-width, for the same reason as
+    // --gallery-cell above — the mobile breakpoint needs to remove this cap
+    // entirely (it does its own full-width swipeable layout), and an inline
+    // max-width would survive that override regardless of viewport.
+    const rowCount = Math.min(explicitCols, count) || 1;
+    styleParts.push(`--gallery-cap:calc(${rowCount} * ${cell} + ${rowCount - 1} * 1rem)`);
+    // justify-content (above) only positions photos *within* this capped
+    // container — it doesn't move the container itself within the wider
+    // band, which is what actually needs to happen for most of these
+    // galleries (a full row rarely has leftover internal space to justify).
+    styleParts.push(`margin:${GALLERY_ALIGN_MARGIN[(block && block.align) || 'center']}`);
   }
   const imgsHTML = images.map(img =>
     `<img src="${escapeHTML(img.src)}" alt="${escapeHTML(img.alt || '')}" loading="lazy" class="lightbox-img">`).join('');
-  return { html: `<div class="${classes}"${styleAttr}>${imgsHTML}</div>` };
+  return { html: `<div class="${classes}" style="${styleParts.join('; ')}">${imgsHTML}</div>` };
 }
 
 // A running counter (reset per band in bandsHTML) so consecutive auto-layout

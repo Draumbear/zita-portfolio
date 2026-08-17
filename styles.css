@@ -643,12 +643,23 @@ h1, h2, h3, h4 {
 .split-text h2 { margin-top: 0; }
 .split-text p:last-child { margin-bottom: 0; }
 
+/* Grid by default — used as-is by the older hand-built project pages, which
+   set their own cols-N class directly in raw HTML with no per-photo sizing
+   control. Dashboard-rendered galleries (project-render.js) instead set
+   `display:flex` inline per-instance, switching just that gallery over to
+   the flex-based, consistently-sized layout below — the grid rules here are
+   simply inert (not read) once a container is flex instead, so both modes
+   coexist safely on the same class name. */
 .project-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin: 1.6rem 0 1.8rem;
   align-items: start;
+  flex-wrap: wrap;
+  /* Unset (legacy galleries, and auto-column dashboard ones) falls back to
+     none — a no-op. Only an explicit-column dashboard gallery sets this. */
+  max-width: var(--gallery-cap, none);
 }
 .project-gallery.cols-1 { grid-template-columns: 1fr; }
 .project-gallery.cols-2 { grid-template-columns: repeat(2, 1fr); }
@@ -657,6 +668,12 @@ h1, h2, h3, h4 {
 .project-gallery.cols-5 { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
 .project-gallery.cols-6 { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
 .project-gallery.wide { grid-template-columns: 1fr; }
+/* Read only when the container is flex (dashboard-rendered galleries set
+   --gallery-cell inline); a legacy grid gallery has no such custom property
+   and this rule has no effect on it either way. Targets any direct child
+   (an <img>, or a <figure> when a caption is present) so both markup shapes
+   size correctly as flex items. */
+.project-gallery > * { flex: 0 0 var(--gallery-cell, 240px); }
 /* The stagger offset below is a transform, which doesn't add layout height —
    without this, the shifted-down images visually overlap whatever content
    comes right after the gallery (a caption, a paragraph). This reserves the
@@ -820,11 +837,14 @@ h1, h2, h3, h4 {
      an ever-taller vertical block — a gallery with several photos otherwise
      forces a lot of scrolling just to get past it on a narrow screen. A
      small peek of the next/previous photo (via the container's own side
-     padding + scroll-padding) signals it's swipeable. Only the layout mode
-     changes here — column/size CSS from wider screens is simply inert once
-     display isn't grid anymore, nothing to override. */
+     padding + scroll-padding) signals it's swipeable. Applies uniformly to
+     both grid-mode (legacy hand-built pages) and flex-mode (dashboard-
+     rendered) galleries — the desktop column/size rules from either mode
+     are simply inert once display and flex-wrap are overridden here. */
   .project-gallery {
     display: flex;
+    flex-wrap: nowrap;
+    max-width: none;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
