@@ -42,12 +42,17 @@ function fileExt(src) {
 const GALLERY_CELL_SIZE = { auto: '170px', xs: '80px', small: '110px', medium: '150px', large: '200px' };
 const GALLERY_JUSTIFY = { left: 'flex-start', center: 'center', right: 'flex-end' };
 const GALLERY_ALIGN_MARGIN = { left: '0 auto 0 0', center: '0 auto', right: '0 0 0 auto' };
-function galleryInnerHTML(images, block) {
+// `fillWidth`: this gallery is rendering inside a group's narrow media column,
+// where the column itself is already the size constraint — each photo fills
+// that column (one per row) instead of being pinned to a fixed cell width,
+// which at typical column widths would otherwise leave the photo marooned in
+// a sea of empty column.
+function galleryInnerHTML(images, block, fillWidth) {
   const count = images.length;
   const explicitCols = block && block.columns && block.columns !== 'auto' ? parseInt(block.columns, 10) : null;
   const stagger = (block && block.stagger === false) ? false : count > 2;
   const uniform = !(block && block.uniform === false);
-  const cell = GALLERY_CELL_SIZE[(block && block.size) || 'auto'];
+  const cell = fillWidth ? '100%' : GALLERY_CELL_SIZE[(block && block.size) || 'auto'];
   const justify = GALLERY_JUSTIFY[(block && block.align) || 'center'];
 
   const classes = `project-gallery${explicitCols ? ' cols-' + explicitCols : ''}${stagger ? ' stagger' : ''}${uniform ? ' uniform' : ''}`;
@@ -59,7 +64,7 @@ function galleryInnerHTML(images, block) {
   // per-photo width with its own percentage-based value, and an inline style
   // would always beat a stylesheet media-query rule regardless of viewport.
   const styleParts = [`display:flex`, `--gallery-cell:${cell}`, `justify-content:${justify}`];
-  if (explicitCols) {
+  if (explicitCols && !fillWidth) {
     // Caps the row at exactly N photos wide (any more wrap to the next row)
     // by capping the container to N cells + the gaps between them, instead
     // of letting flex-wrap pack in as many as fit the available width. Based
@@ -100,10 +105,13 @@ let groupAlternator = 0;
 function groupMediaHTML(media, narrow) {
   if (media.type === 'gallery') {
     const explicitColumns = media.columns && media.columns !== 'auto';
-    const effectiveBlock = narrow
-      ? { ...media, columns: explicitColumns ? media.columns : '1', uniform: media.uniform === true, stagger: media.stagger === true }
-      : media;
-    return galleryInnerHTML(media.images || [], effectiveBlock).html;
+    if (!narrow) return galleryInnerHTML(media.images || [], media).html;
+    const effectiveBlock = { ...media, columns: explicitColumns ? media.columns : '1', uniform: media.uniform === true, stagger: media.stagger === true };
+    // Left on Automatic, photos fill the column one per row (fillWidth) —
+    // the column is already the constraint. An explicit column choice still
+    // wins, and keeps the normal fixed-cell sizing so a deliberate 2-up grid
+    // still reads as a grid in here.
+    return galleryInnerHTML(media.images || [], effectiveBlock, !explicitColumns).html;
   }
   return blockHTML(media);
 }
