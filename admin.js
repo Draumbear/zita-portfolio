@@ -265,14 +265,14 @@ function watchWrites(api) {
 async function refreshPublishBar() {
   const bar = document.getElementById('publishBar');
   if (!gh || !bar) return;
-  const pending = await gh.countUnpublished().catch(() => null);
-  if (!pending) {
+  const pending = await gh.pendingChanges().catch(() => null);
+  if (!pending || !pending.length) {
     bar.classList.add('hidden');
     return;
   }
-  document.getElementById('publishCount').textContent = pending === 1
+  document.getElementById('publishCount').textContent = pending.length === 1
     ? '1 change is not live yet'
-    : `${pending} changes are not live yet`;
+    : `${pending.length} changes are not live yet`;
   bar.classList.remove('hidden');
 }
 

@@ -9,6 +9,8 @@
 // publish(), the one commit that leaves the marker off and actually deploys.
 // (GitHub Pages ignores the marker and publishes each commit as before.)
 const SKIP_DEPLOY_MARKER = '[skip netlify]';
+// Trailer naming the dashboard screen a save came from, e.g. 'products/tties'.
+const TARGET_PREFIX = '[target: ';
 
 // This site is still on GitHub Pages, where deploys are free and the marker
 // below is ignored anyway — so saves keep going live immediately. Flip this
@@ -25,6 +27,16 @@ const GitHubStore = {
   save(cfg) { localStorage.setItem(GH_STORAGE_KEY, JSON.stringify(cfg)); },
   clear() { localStorage.removeItem(GH_STORAGE_KEY); }
 };
+
+// The marker only counts as its own line. A substring test would treat any
+// commit that merely mentions '[skip netlify]' -- a developer commit whose
+// message explains this very mechanism, say -- as one of her unpublished
+// saves, listing engineering prose to her as if she had written it. (Netlify's
+// own detection IS a substring match, so such a commit also silently skips its
+// own deploy: don't put the literal marker in a commit message.)
+function isDeferredSave(message) {
+  return (message || '').split('\n').some(line => line.trim() === SKIP_DEPLOY_MARKER);
+}
 
 function utf8ToBase64(str) {
   return btoa(unescape(encodeURIComponent(str)));
@@ -215,10 +227,14 @@ class GitHubAPI {
 
   // Single choke point for save commit messages: nothing that writes from the
   // dashboard may reach the branch without the skip marker attached.
-  _saveMessage(message) {
-    return DEFER_PUBLISH ? `${message}
-
-${SKIP_DEPLOY_MARKER}` : message;
+  _saveMessage(message, target) {
+    if (!DEFER_PUBLISH) return message;
+    const lines = [message, '', SKIP_DEPLOY_MARKER];
+    // Where in the dashboard this change was made, so the publish bar can offer
+    // a way back to it. A trailer rather than something parsed out of the
+    // message text: the messages are prose, and prose changes.
+    if (target) lines.push(`${TARGET_PREFIX}${target}]`);
+    return lines.join('\n');
   }
 
   // The publish step: an empty commit with NO skip marker, so Netlify picks it
@@ -227,20 +243,26 @@ ${SKIP_DEPLOY_MARKER}` : message;
     return this._commitTreeEntries([], message);
   }
 
-  // How many commits sit on top of the last published (marker-free) one. Read
-  // from the branch history rather than kept locally, so the count stays right
-  // across browsers and devices. Returns null if the history can't be read —
-  // callers treat that as "unknown", not as "nothing pending".
-  async countUnpublished() {
-    if (!DEFER_PUBLISH) return 0;
+  // Everything saved since the last published (marker-free) commit, newest
+  // first. Read from the branch history rather than kept locally, so the list
+  // is right across browsers and devices. Returns null if the history can't be
+  // read — callers treat that as "unknown", not as "nothing pending".
+  async pendingChanges() {
+    if (!DEFER_PUBLISH) return [];
     const url = `${this.base}/commits?sha=${this.branch}&per_page=100&_=${Date.now()}`;
     const res = await fetch(url, { headers: this.headers(), cache: 'no-store' });
     if (!res.ok) return null;
     const commits = await res.json();
-    let pending = 0;
+    const pending = [];
     for (const c of commits) {
-      if (!c.commit.message.includes(SKIP_DEPLOY_MARKER)) break;
-      pending += 1;
+      const message = c.commit.message;
+      if (!isDeferredSave(message)) break;
+      const target = (message.match(/\[target: ([^\]]+)\]/) || [])[1] || null;
+      pending.push({
+        summary: message.split('\n')[0],
+        target,
+        date: c.commit.author && c.commit.author.date || null
+      });
     }
     return pending;
   }
@@ -251,7 +273,7 @@ ${SKIP_DEPLOY_MARKER}` : message;
   // SKIP_DEPLOY_MARKER above and publish().
   // files: [{ path, content }] to add/update (content: string or { base64 }),
   // or [{ path, delete: true }] to remove a path.
-  async commitBatch(files, message) {
+  async commitBatch(files, message, target) {
     if (!files.length) return null;
 
     // Blob creation is content-addressed and independent of the branch tip, so
@@ -270,7 +292,7 @@ ${SKIP_DEPLOY_MARKER}` : message;
       return { path: f.path, mode: '100644', type: 'blob', sha };
     }));
 
-    return this._commitTreeEntries(treeEntries, this._saveMessage(message));
+    return this._commitTreeEntries(treeEntries, this._saveMessage(message, target));
   }
 
   // Builds a tree on top of the branch's CURRENT tip and updates the ref. If
