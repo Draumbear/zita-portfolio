@@ -243,13 +243,65 @@ function initConnect() {
   }
 }
 
+// Saves may be held back from the live site (DEFER_PUBLISH in admin-github.js)
+// so a dozen dashboard edits cost one deploy instead of a dozen. Wrapping the
+// write methods once, here, keeps the pending counter honest without every
+// save handler having to remember to refresh it.
+function watchWrites(api) {
+  for (const name of ['commitBatch', 'putFile', 'deleteFile']) {
+    const original = api[name].bind(api);
+    api[name] = async (...args) => {
+      const result = await original(...args);
+      refreshPublishBar();
+      return result;
+    };
+  }
+  return api;
+}
+
+// The count comes from the branch history rather than this browser, so it is
+// right even when the last edits were made somewhere else. Stays hidden
+// entirely while DEFER_PUBLISH is off, since then saves are already live.
+async function refreshPublishBar() {
+  const bar = document.getElementById('publishBar');
+  if (!gh || !bar) return;
+  const pending = await gh.countUnpublished().catch(() => null);
+  if (!pending) {
+    bar.classList.add('hidden');
+    return;
+  }
+  document.getElementById('publishCount').textContent = pending === 1
+    ? '1 change is not live yet'
+    : `${pending} changes are not live yet`;
+  bar.classList.remove('hidden');
+}
+
+async function publishChanges() {
+  const btn = document.getElementById('publishBtn');
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Publishing…';
+  try {
+    await gh.publish();
+    toast('Publishing now — the live site usually catches up within a minute.', 'ok');
+  } catch (e) {
+    toast('Publish failed: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+    await refreshPublishBar();
+  }
+}
+
+document.getElementById('publishBtn').addEventListener('click', publishChanges);
+
 async function tryConnect(cfg, silent) {
   const errEl = document.getElementById('connectError');
   errEl.textContent = '';
   try {
     const api = new GitHubAPI(cfg);
     await api.verify();
-    gh = api;
+    gh = watchWrites(api);
     GitHubStore.save(cfg);
     document.getElementById('connectPanel').classList.add('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
@@ -263,6 +315,7 @@ async function tryConnect(cfg, silent) {
     liveLink.href = `https://${cfg.owner}.github.io/${cfg.repo}/`;
     liveLink.classList.remove('hidden');
     await loadAll();
+    await refreshPublishBar();
     checkSiteAutosave();
     await checkProjectAutosave();
   } catch (e) {

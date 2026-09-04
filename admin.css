@@ -230,6 +230,21 @@ a { color: var(--a-accent); }
   gap: 0.8rem;
   flex-wrap: wrap;
 }
+/* Only shown when saves are being held back from the live site (see
+   DEFER_PUBLISH in admin-github.js) — the standing reminder that work is
+   waiting, and the one place to actually ship it. */
+.publish-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem;
+  background: var(--a-ink); color: #fff;
+  border-radius: var(--a-radius);
+  padding: 1rem 1.2rem; margin-bottom: 1.2rem;
+}
+.publish-bar-text { display: flex; flex-direction: column; gap: 0.25rem; }
+.publish-bar-text strong { font-size: 1rem; }
+.publish-bar-text span { font-size: 0.82rem; color: rgba(255, 255, 255, 0.72); max-width: 56ch; }
+.publish-bar .btn-admin { flex-shrink: 0; }
+
 .dashboard-toolbar {
   display: flex;
   justify-content: space-between;

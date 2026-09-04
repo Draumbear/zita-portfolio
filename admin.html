@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="admin.css?v=20260817r">
+<link rel="stylesheet" href="admin.css?v=publish1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <meta name="robots" content="noindex, nofollow">
@@ -63,6 +63,13 @@
 
   <!-- Dashboard -->
   <div id="dashboard" class="hidden">
+    <div id="publishBar" class="publish-bar hidden">
+      <div class="publish-bar-text">
+        <strong id="publishCount"></strong>
+        <span>Your edits are saved, but they aren't on the live site yet. Publish when you're done making changes.</span>
+      </div>
+      <button class="btn-admin" id="publishBtn">Publish changes</button>
+    </div>
     <div class="dashboard-toolbar">
       <div class="admin-tabs">
         <button data-tab="site" class="active">Site &amp; Bio</button>
@@ -326,7 +333,7 @@
      or admin-github.js changes — browsers cache these aggressively, and
      without a version bump a returning visitor can silently keep running old
      code after a deploy. -->
-<script src="admin-github.js?v=20260817o"></script>
-<script src="admin.js?v=20260817w"></script>
+<script src="admin-github.js?v=publish1"></script>
+<script src="admin.js?v=publish1"></script>
 </body>
 </html>

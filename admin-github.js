@@ -2,6 +2,19 @@
 // Nothing here is sent anywhere except api.github.com — the token lives
 // only in this browser's localStorage.
 
+// Netlify rebuilds — and bills credits — on every push to the connected branch,
+// so a dashboard that commits per save would burn a deploy per edited product.
+// Every write below therefore carries this marker, which Netlify honours by
+// skipping the build entirely. The "Publiceer wijzigingen" button calls
+// publish(), the one commit that leaves the marker off and actually deploys.
+// (GitHub Pages ignores the marker and publishes each commit as before.)
+const SKIP_DEPLOY_MARKER = '[skip netlify]';
+
+// This site is still on GitHub Pages, where deploys are free and the marker
+// below is ignored anyway — so saves keep going live immediately. Flip this
+// to true the day it moves to Netlify and the publish button takes over.
+const DEFER_PUBLISH = false;
+
 const GH_STORAGE_KEY = 'zita-admin-github';
 
 const GitHubStore = {
@@ -127,7 +140,7 @@ class GitHubAPI {
   async putFile(path, content, message) {
     const existing = await this.getFile(path).catch(() => null);
     const body = {
-      message,
+      message: this._saveMessage(message),
       content: typeof content === 'string' ? utf8ToBase64(content) : content.base64,
       branch: this.branch
     };
@@ -155,7 +168,7 @@ class GitHubAPI {
     const res = await fetch(`${this.base}/contents/${encodeURI(path)}`, {
       method: 'DELETE',
       headers: { ...this.headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, sha: existing.sha, branch: this.branch })
+      body: JSON.stringify({ message: this._saveMessage(message), sha: existing.sha, branch: this.branch })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -200,9 +213,42 @@ class GitHubAPI {
     return { path, content: { base64 }, url: this.rawUrl(path) };
   }
 
+  // Single choke point for save commit messages: nothing that writes from the
+  // dashboard may reach the branch without the skip marker attached.
+  _saveMessage(message) {
+    return DEFER_PUBLISH ? `${message}
+
+${SKIP_DEPLOY_MARKER}` : message;
+  }
+
+  // The publish step: an empty commit with NO skip marker, so Netlify picks it
+  // up and ships every save made since the last publish in a single build.
+  async publish(message = 'Publiceer wijzigingen') {
+    return this._commitTreeEntries([], message);
+  }
+
+  // How many commits sit on top of the last published (marker-free) one. Read
+  // from the branch history rather than kept locally, so the count stays right
+  // across browsers and devices. Returns null if the history can't be read —
+  // callers treat that as "unknown", not as "nothing pending".
+  async countUnpublished() {
+    if (!DEFER_PUBLISH) return 0;
+    const url = `${this.base}/commits?sha=${this.branch}&per_page=100&_=${Date.now()}`;
+    const res = await fetch(url, { headers: this.headers(), cache: 'no-store' });
+    if (!res.ok) return null;
+    const commits = await res.json();
+    let pending = 0;
+    for (const c of commits) {
+      if (!c.commit.message.includes(SKIP_DEPLOY_MARKER)) break;
+      pending += 1;
+    }
+    return pending;
+  }
+
   // Commits any number of file changes as a single atomic commit + push, so one
   // user action (e.g. "Save project" touching several images plus two JSON files)
-  // triggers exactly one GitHub Pages deploy instead of one per file.
+  // is one commit rather than one per file. Saves don't deploy at all — see
+  // SKIP_DEPLOY_MARKER above and publish().
   // files: [{ path, content }] to add/update (content: string or { base64 }),
   // or [{ path, delete: true }] to remove a path.
   async commitBatch(files, message) {
@@ -224,7 +270,7 @@ class GitHubAPI {
       return { path: f.path, mode: '100644', type: 'blob', sha };
     }));
 
-    return this._commitTreeEntries(treeEntries, message);
+    return this._commitTreeEntries(treeEntries, this._saveMessage(message));
   }
 
   // Builds a tree on top of the branch's CURRENT tip and updates the ref. If
@@ -241,12 +287,17 @@ class GitHubAPI {
     if (!parentCommitRes.ok) throw new Error(`Failed to read parent commit (${parentCommitRes.status})`);
     const baseTreeSha = (await parentCommitRes.json()).tree.sha;
 
-    const treeRes = await fetch(`${this.base}/git/trees`, {
-      method: 'POST', headers: { ...this.headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries })
-    });
-    if (!treeRes.ok) { const err = await treeRes.json().catch(() => ({})); throw new Error(err.message || `Failed to build commit tree (${treeRes.status})`); }
-    const newTreeSha = (await treeRes.json()).sha;
+    // No entries means an empty commit (publish()): reuse the parent's tree
+    // verbatim rather than asking GitHub to build one from nothing.
+    let newTreeSha = baseTreeSha;
+    if (treeEntries.length) {
+      const treeRes = await fetch(`${this.base}/git/trees`, {
+        method: 'POST', headers: { ...this.headers(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries })
+      });
+      if (!treeRes.ok) { const err = await treeRes.json().catch(() => ({})); throw new Error(err.message || `Failed to build commit tree (${treeRes.status})`); }
+      newTreeSha = (await treeRes.json()).sha;
+    }
 
     const commitRes = await fetch(`${this.base}/git/commits`, {
       method: 'POST', headers: { ...this.headers(), 'Content-Type': 'application/json' },
