@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="admin.css?v=publish6">
+<link rel="stylesheet" href="admin.css?v=f0c3c601">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <meta name="robots" content="noindex, nofollow">
@@ -57,6 +57,16 @@
         <input type="password" id="ghToken" placeholder="github_pat_...">
       </div>
     </div>
+    <div class="admin-row">
+      <div class="admin-field">
+        <!-- Options come from DASHBOARD_USERS in admin.js. A list rather than a
+             text field: the author's e-mail is derived from this name, so a
+             typo would quietly become another contributor in the history. -->
+        <label for="ghAuthor">Your name</label>
+        <select id="ghAuthor"><option value="">Choose your name…</option></select>
+        <span class="hint">Recorded against every change you make, so the history says who did what.</span>
+      </div>
+    </div>
     <button class="btn-admin" id="connectBtn">Connect</button>
     <span id="connectError" class="hint" style="color:var(--a-danger); display:block; margin-top:0.6rem;"></span>
   </div>
@@ -66,10 +76,17 @@
     <div id="publishBar" class="publish-bar hidden">
       <div class="publish-bar-text">
         <strong id="publishCount"></strong>
-        <span>Your edits are saved, but they aren't on the live site yet. Publish when you're done making changes.</span>
+        <span id="publishNote"></span>
       </div>
-      <button class="btn-admin" id="publishBtn">Publish changes</button>
+      <div class="publish-bar-actions">
+        <button class="btn-admin secondary" id="recentToggle" type="button" aria-expanded="false" aria-controls="publishList">Recent changes</button>
+        <button class="btn-admin" id="publishBtn">Publish changes</button>
+      </div>
+      <ul class="publish-list" id="publishList" hidden></ul>
     </div>
+    <!-- What the queue is doing, and what is behind it. Without this a save
+         looks exactly like a hang. -->
+    <div class="queue-status" id="queueStatus" hidden></div>
     <div class="dashboard-toolbar">
       <div class="admin-tabs">
         <button data-tab="site" class="active">Site &amp; Bio</button>
@@ -329,11 +346,11 @@
 
 </main>
 
-<!-- Bump the ?v= on these (and on admin.css above) whenever this file, admin.js,
-     or admin-github.js changes — browsers cache these aggressively, and
-     without a version bump a returning visitor can silently keep running old
-     code after a deploy. -->
-<script src="admin-github.js?v=publish6"></script>
-<script src="admin.js?v=publish6"></script>
+<!-- The ?v= tokens below are a hash of the CSS/JS contents, written by
+     scripts/bump_assets_version.py. Run that after changing any of them --
+     bumping by hand is what let every page sit on a three-week-old copy of
+     styles.css while the file itself kept changing. -->
+<script src="admin-github.js?v=f0c3c601"></script>
+<script src="admin.js?v=f0c3c601"></script>
 </body>
 </html>

@@ -233,12 +233,21 @@ function showBuildStatus() {
 // ---------- connect ----------
 
 function initConnect() {
+  fillUserOptions(document.getElementById('ghAuthor'), 'Choose your name…');
   const stored = GitHubStore.load();
   if (stored) {
     document.getElementById('ghOwner').value = stored.owner || '';
     document.getElementById('ghRepo').value = stored.repo || '';
     document.getElementById('ghBranch').value = stored.branch || 'main';
     document.getElementById('ghToken').value = stored.token || '';
+    // A name saved before this list existed, or since removed from it, would
+    // select nothing and silently read as "not chosen" -- so it is kept as its
+    // own option rather than lost.
+    if (stored.authorName && !DASHBOARD_USERS.includes(stored.authorName)) {
+      document.getElementById('ghAuthor').insertAdjacentHTML('beforeend',
+        `<option value="${escapeHTML(stored.authorName)}">${escapeHTML(stored.authorName)}</option>`);
+    }
+    document.getElementById('ghAuthor').value = stored.authorName || '';
     tryConnect(stored, true);
   }
 }
@@ -247,12 +256,143 @@ function initConnect() {
 // so a dozen dashboard edits cost one deploy instead of a dozen. Wrapping the
 // write methods once, here, keeps the pending counter honest without every
 // save handler having to remember to refresh it.
+// Who edits this site. A list rather than a text field: the author's e-mail is
+// derived from this name, so a typo would quietly become another contributor in
+// the history. Add a line here if someone else ever gets access.
+const DASHBOARD_USERS = ['Zita Decoopman', 'Tanguy Swerts'];
+
+function fillUserOptions(sel, placeholder) {
+  sel.innerHTML = (placeholder ? `<option value="">${placeholder}</option>` : '') +
+    DASHBOARD_USERS.map(n => `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`).join('');
+}
+
+// ---------- What the write queue is doing ----------
+// A save that uploads several images takes a while, and a page that looks idle
+// while it works is indistinguishable from one that has hung.
+let queueState = { active: null, waiting: [] };
+document.addEventListener('gh-queue', (e) => { queueState = e.detail; renderQueueStatus(); });
+
+function renderQueueStatus() {
+  const el = document.getElementById('queueStatus');
+  if (!el) return;
+  const { active, waiting } = queueState;
+  const deployRow = deployStatusRow();
+  if (!active && !waiting.length && !deployRow) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  const rows = [];
+  if (active) {
+    rows.push(`<li class="qs-active"><span class="spinner"></span><span>${escapeHTML(active.label)}` +
+      `${active.step ? `<span class="qs-step"> — ${escapeHTML(active.step)}</span>` : ''}</span></li>`);
+  }
+  for (const w of waiting) {
+    rows.push(`<li class="qs-waiting"><span class="qs-dot"></span><span>${escapeHTML(w.label)}</span></li>`);
+  }
+  if (deployRow) rows.push(deployRow);
+  el.innerHTML = `<ul class="qs-list">${rows.join('')}</ul>`;
+}
+
+// ---------- Is it actually online? ----------
+// GitHub can report whether a build succeeded, but only to a token carrying
+// Deployments or Actions permission -- and asking for more permission than
+// Contents is the opposite of what this dashboard wants. The dashboard is
+// served from the same origin as the site, so it can simply read the published
+// file back and see whether the change is in it. That answers the question that
+// actually matters: can a visitor see it yet.
+const DEPLOY_POLL_MS = 4000;
+const DEPLOY_TIMEOUT_MS = 4 * 60 * 1000;
+let deployWatch = null;
+
+function deployStatusRow() {
+  if (!deployWatch) return '';
+  if (deployWatch.state === 'waiting') {
+    return `<li class="qs-active"><span class="spinner"></span><span>Going live<span class="qs-step"> — hang on</span></span></li>`;
+  }
+  if (deployWatch.state === 'live') {
+    return `<li class="qs-done"><span class="qs-tick">&#10003;</span><span>Live on the site</span></li>`;
+  }
+  return `<li class="qs-waiting"><span class="qs-dot"></span><span>Not live yet<span class="qs-step"> — refresh the site in a minute</span></span></li>`;
+}
+
+// Only meaningful where the dashboard and the site are the same origin. Opened
+// from a local copy, a relative fetch would read the local file and always say
+// "live", which is worse than saying nothing.
+function canCheckDeploys() {
+  return !['localhost', '127.0.0.1', ''].includes(location.hostname);
+}
+
+async function trackDeployment(files) {
+  if (!canCheckDeploys() || !Array.isArray(files)) return;
+  // Any text file the commit touched will do; images cannot be compared this
+  // cheaply, and a project save always writes its JSON alongside them.
+  const probe = files.find(f => !f.delete && (typeof f.content === 'string' || typeof f.content === 'function'));
+  if (!probe) return;
+  const expected = (typeof probe.content === 'function' ? probe.content() : probe.content).trim();
+
+  const watch = { state: 'waiting', path: probe.path };
+  deployWatch = watch;
+  renderQueueStatus();
+
+  const until = Date.now() + DEPLOY_TIMEOUT_MS;
+  while (Date.now() < until) {
+    await new Promise(r => setTimeout(r, DEPLOY_POLL_MS));
+    if (deployWatch !== watch) return; // a newer save took over
+    try {
+      const res = await fetch(`${probe.path}?cb=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok && (await res.text()).trim() === expected) {
+        watch.state = 'live';
+        renderQueueStatus();
+        // Long enough to notice, short enough not to become furniture.
+        setTimeout(() => { if (deployWatch === watch) { deployWatch = null; renderQueueStatus(); } }, 6000);
+        return;
+      }
+    } catch { /* offline or a hiccup: keep waiting rather than crying wolf */ }
+  }
+  watch.state = 'slow';
+  renderQueueStatus();
+}
+
+// ---------- Undo ----------
+function relativeTime(iso) {
+  const secs = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 60) return 'just now';
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} h ago`;
+  return `${Math.round(hours / 24)} d ago`;
+}
+
+async function undoChange(sha, what) {
+  try {
+    const result = await gh.revertCommit(sha, `Undid: ${what}`);
+    toast('Put back.', 'ok');
+    await loadAll();
+    await refreshPublishBar();
+    watchRevertedFiles(result && result.paths);
+  } catch (e) {
+    toast(`Could not put that back: ${e.message}`, 'err');
+  }
+}
+
+// A revert is built from blob shas, so unlike a save it never holds the file's
+// text -- and the deploy watcher works by reading the published file back and
+// comparing. One extra read of whatever the revert restored gives it something
+// to compare against. Deliberately not awaited: the undo is already done.
+function watchRevertedFiles(paths) {
+  const path = (paths || []).find(p => /\.(json|html|css|js|txt|xml)$/i.test(p));
+  if (!path) return; // images only: nothing cheap to compare
+  gh.getFile(path)
+    .then(file => { if (file) trackDeployment([{ path, content: file.content }]); })
+    .catch(() => { /* the undo worked; only the status row is missing */ });
+}
+
 function watchWrites(api) {
   for (const name of ['commitBatch', 'putFile', 'deleteFile']) {
     const original = api[name].bind(api);
     api[name] = async (...args) => {
       const result = await original(...args);
       refreshPublishBar();
+      if (name === 'commitBatch') trackDeployment(args[0]);
       return result;
     };
   }
@@ -265,16 +405,51 @@ function watchWrites(api) {
 async function refreshPublishBar() {
   const bar = document.getElementById('publishBar');
   if (!gh || !bar) return;
-  const pending = await gh.pendingChanges().catch(() => null);
+  const pending = await gh.pendingChanges(12).catch(() => null);
   if (!pending || !pending.length) {
     bar.classList.add('hidden');
     return;
   }
-  document.getElementById('publishCount').textContent = pending.length === 1
-    ? '1 change is not live yet'
-    : `${pending.length} changes are not live yet`;
+  const count = document.getElementById('publishCount');
+  const note = document.getElementById('publishNote');
+  const publishBtn = document.getElementById('publishBtn');
+
+  // Without deferred publishing every save is already live, so the bar is a
+  // history with an undo against each line rather than a queue to flush.
+  if (DEFER_PUBLISH) {
+    count.textContent = pending.length === 1 ? '1 change is not live yet'
+      : `${pending.length} changes are not live yet`;
+    note.textContent = "Your edits are saved, but they aren't on the live site yet. Publish when you're done making changes.";
+    publishBtn.hidden = false;
+  } else {
+    count.textContent = 'Recent changes';
+    note.textContent = 'Everything you save goes straight to the live site. Changed your mind? Put any of these back.';
+    publishBtn.hidden = true;
+  }
+
+  document.getElementById('publishList').innerHTML = pending.map(c => `
+    <li>
+      <span><span class="pc-what">${escapeHTML(c.summary)}</span>${c.date ? `<span class="pc-when">${escapeHTML(relativeTime(c.date))}</span>` : ''}</span>
+      ${c.sha ? `<button class="pc-undo" type="button" data-sha="${escapeHTML(c.sha)}" data-what="${escapeHTML(c.summary)}">Undo</button>` : ''}
+    </li>`).join('');
   bar.classList.remove('hidden');
 }
+
+document.getElementById('recentToggle').addEventListener('click', () => {
+  const list = document.getElementById('publishList');
+  const btn = document.getElementById('recentToggle');
+  list.hidden = !list.hidden;
+  btn.setAttribute('aria-expanded', String(!list.hidden));
+});
+
+// Delegated: the list is rebuilt after every save.
+document.getElementById('publishList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.pc-undo');
+  if (!btn) return;
+  if (!confirm(`Put back "${btn.dataset.what}"?\n\nThis restores the files that change touched, exactly as they were before it.`)) return;
+  btn.disabled = true;
+  await undoChange(btn.dataset.sha, btn.dataset.what);
+});
 
 async function publishChanges() {
   const btn = document.getElementById('publishBtn');
@@ -329,10 +504,16 @@ document.getElementById('connectBtn').addEventListener('click', () => {
     owner: document.getElementById('ghOwner').value.trim(),
     repo: document.getElementById('ghRepo').value.trim(),
     branch: document.getElementById('ghBranch').value.trim() || 'main',
-    token: document.getElementById('ghToken').value.trim()
+    token: document.getElementById('ghToken').value.trim(),
+    authorName: document.getElementById('ghAuthor').value
   };
   if (!cfg.owner || !cfg.repo || !cfg.token) {
     document.getElementById('connectError').textContent = 'Fill in username, repository, and token.';
+    return;
+  }
+  if (!cfg.authorName) {
+    document.getElementById('connectError').textContent = 'Choose your name, so your changes are recorded against it.';
+    document.getElementById('ghAuthor').focus();
     return;
   }
   withBusy(document.getElementById('connectBtn'), 'Connecting…', () => tryConnect(cfg, false));

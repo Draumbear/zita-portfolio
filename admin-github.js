@@ -81,15 +81,41 @@ async function toWebP(file, { maxDimension = 2000, quality = 0.82 } = {}) {
   }
 }
 
+// GitHub credits a commit to whoever owns the token, so anyone sharing one is
+// indistinguishable in the history. Sending an explicit author fixes that: the
+// commit is authored by whoever is at the keyboard and committed by the account
+// that owns the token, which is exactly the truth. The address is on .invalid
+// (RFC 2606) so it can never route anywhere, and is derived from the name
+// because git tooling groups contributors by e-mail, not by name.
+const AUTHOR_DOMAIN = 'zita-portfolio.invalid';
+
+function authorEmail(name) {
+  const slug = (name || '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${slug || 'dashboard'}@${AUTHOR_DOMAIN}`;
+}
+
 class GitHubAPI {
-  constructor({ token, owner, repo, branch }) {
+  constructor({ token, owner, repo, branch, authorName }) {
     this.token = token;
     this.owner = owner;
     this.repo = repo;
     this.branch = branch || 'main';
+    this.authorName = (authorName || '').trim();
+    this._writes = Promise.resolve(); // tail of the write queue
+    this._queue = [];                 // what is in it, for the dashboard
   }
 
   get base() { return `https://api.github.com/repos/${this.owner}/${this.repo}`; }
+
+  // Undefined rather than a placeholder when no name is set: GitHub then falls
+  // back to the token owner, which is the old behaviour and still correct.
+  author() {
+    if (!this.authorName) return undefined;
+    return { name: this.authorName, email: authorEmail(this.authorName) };
+  }
 
   headers() {
     return {
@@ -149,13 +175,63 @@ class GitHubAPI {
   }
 
   // content: raw string (text) or { base64: '...' } for binary uploads.
-  async putFile(path, content, message) {
+  // Every write goes through here, so two can never be in flight at once.
+  // They used to be able to: _commitTreeEntries retries a lost race against the
+  // moved branch tip while still carrying the blobs it built beforehand, so a
+  // save that lost the race quietly overwrote whatever landed in between --
+  // reordering projects while an edit was still committing lost one of them.
+  // Every queued write announces itself, so the dashboard can say what is
+  // uploading and what is behind it; without that the queue is invisible and
+  // "working" looks exactly like "stuck".
+  _announce() {
+    document.dispatchEvent(new CustomEvent('gh-queue', { detail: {
+      active: this._queue[0] || null,
+      waiting: this._queue.slice(1),
+    } }));
+  }
+
+  // What a write is called while it is queued. The commit message is already a
+  // plain-language description of the change, so it doubles as one.
+  _enqueue(task, label) {
+    this._queue = this._queue || [];
+    const entry = { label: label || 'Saving change', step: null };
+    this._queue.push(entry);
+    this._announce();
+
+    const finish = (result) => {
+      this._queue.splice(this._queue.indexOf(entry), 1);
+      this._announce();
+      return result;
+    };
+    // .then(task, task) rather than .then(task): one failed write must not
+    // strand every write behind it.
+    const run = this._writes
+      .then(() => task(entry), () => task(entry))
+      .then(finish, (e) => { finish(); throw e; });
+    this._writes = run.catch(() => {});
+    return run;
+  }
+
+  // Called from inside a running write to report where it has got to.
+  _step(entry, step) {
+    if (!entry) return;
+    entry.step = step;
+    this._announce();
+  }
+
+  putFile(path, content, message) {
+    return this._enqueue(() => this._putFile(path, content, message), message);
+  }
+
+  async _putFile(path, content, message) {
     const existing = await this.getFile(path).catch(() => null);
     const body = {
       message: this._saveMessage(message),
       content: typeof content === 'string' ? utf8ToBase64(content) : content.base64,
       branch: this.branch
     };
+    const author = this.author();
+    if (author) body.author = author;
     if (existing) body.sha = existing.sha;
 
     const res = await fetch(`${this.base}/contents/${encodeURI(path)}`, {
@@ -174,13 +250,18 @@ class GitHubAPI {
     return this.putFile(path, JSON.stringify(obj, null, 2), message);
   }
 
-  async deleteFile(path, message) {
+  deleteFile(path, message) {
+    return this._enqueue(() => this._deleteFile(path, message), message);
+  }
+
+  async _deleteFile(path, message) {
     const existing = await this.getFile(path);
     if (!existing) return; // already gone
     const res = await fetch(`${this.base}/contents/${encodeURI(path)}`, {
       method: 'DELETE',
       headers: { ...this.headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: this._saveMessage(message), sha: existing.sha, branch: this.branch })
+      body: JSON.stringify({ message: this._saveMessage(message), sha: existing.sha, branch: this.branch,
+                             ...(this.author() ? { author: this.author() } : {}) })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -247,18 +328,23 @@ class GitHubAPI {
   // first. Read from the branch history rather than kept locally, so the list
   // is right across browsers and devices. Returns null if the history can't be
   // read — callers treat that as "unknown", not as "nothing pending".
-  async pendingChanges() {
-    if (!DEFER_PUBLISH) return [];
-    const url = `${this.base}/commits?sha=${this.branch}&per_page=100&_=${Date.now()}`;
+  // Undoing a change does not depend on whether it has been published, so this
+  // list is not either. With publishing deferred it stops at the last published
+  // commit -- those are the ones still waiting. Without, it simply returns the
+  // most recent changes, which are all live but every bit as undoable.
+  async pendingChanges(limit = 100) {
+    const url = `${this.base}/commits?sha=${this.branch}&per_page=${limit}&_=${Date.now()}`;
     const res = await fetch(url, { headers: this.headers(), cache: 'no-store' });
     if (!res.ok) return null;
     const commits = await res.json();
     const pending = [];
     for (const c of commits) {
       const message = c.commit.message;
-      if (!isDeferredSave(message)) break;
+      // Only a deferred setup has a boundary to stop at.
+      if (DEFER_PUBLISH && !isDeferredSave(message)) break;
       const target = (message.match(/\[target: ([^\]]+)\]/) || [])[1] || null;
       pending.push({
+        sha: c.sha,
         summary: message.split('\n')[0],
         target,
         date: c.commit.author && c.commit.author.date || null
@@ -267,23 +353,69 @@ class GitHubAPI {
     return pending;
   }
 
+  // Undo, without downloading anything. A commit's files are put back to the
+  // blob they pointed at in its parent, which is exact, binary-safe and works
+  // for a deleted photo as readily as for a line of text. Only the paths that
+  // commit touched move, so a later unrelated change is left alone.
+  revertCommit(sha, message) {
+    return this._enqueue(() => this._revertCommit(sha, message), message);
+  }
+
+  async _revertCommit(sha, message) {
+    const res = await fetch(`${this.base}/commits/${sha}?_=${Date.now()}`, { headers: this.headers(), cache: 'no-store' });
+    if (!res.ok) throw new Error(`Could not read that change (${res.status})`);
+    const detail = await res.json();
+    const parent = detail.parents && detail.parents[0];
+    if (!parent) throw new Error('That change has nothing to go back to.');
+
+    const entries = await Promise.all((detail.files || []).map(async (f) => {
+      const before = await this.blobShaAt(f.filename, parent.sha);
+      return { path: f.filename, mode: '100644', type: 'blob', sha: before };
+    }));
+    if (!entries.length) throw new Error('That change did not touch any files.');
+    const newSha = await this._commitTreeEntries(entries, this._saveMessage(message));
+    // The caller needs to know what moved: undoing a change is as much a change
+    // to the live site as making one, and deserves the same "it is live" as any
+    // other save.
+    return { sha: newSha, paths: entries.map(e => e.path) };
+  }
+
+  // Blob sha of a path at a given commit, or null when it did not exist there.
+  async blobShaAt(path, ref) {
+    const url = `${this.base}/contents/${encodeURI(path)}?ref=${ref}&_=${Date.now()}`;
+    const res = await fetch(url, { headers: this.headers(), cache: 'no-store' });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Could not read ${path} (${res.status})`);
+    return (await res.json()).sha;
+  }
+
   // Commits any number of file changes as a single atomic commit + push, so one
   // user action (e.g. "Save project" touching several images plus two JSON files)
   // is one commit rather than one per file. Saves don't deploy at all — see
   // SKIP_DEPLOY_MARKER above and publish().
   // files: [{ path, content }] to add/update (content: string or { base64 }),
   // or [{ path, delete: true }] to remove a path.
-  async commitBatch(files, message, target) {
-    if (!files.length) return null;
+  commitBatch(files, message, target) {
+    if (!files.length) return Promise.resolve(null);
+    return this._enqueue((entry) => this._commitBatch(files, message, target, entry), message);
+  }
+
+  async _commitBatch(files, message, target, entry) {
 
     // Blob creation is content-addressed and independent of the branch tip, so
     // it only needs to happen once — even if committing below has to retry
     // against a moved tip, these shas are still valid.
     const treeEntries = await Promise.all(files.map(async (f) => {
       if (f.delete) return { path: f.path, mode: '100644', type: 'blob', sha: null };
-      const body = typeof f.content === 'string'
-        ? { content: f.content, encoding: 'utf-8' }
-        : { content: f.content.base64, encoding: 'base64' };
+      // Resolved here rather than by the caller: a function means "whatever
+      // this file should contain at the moment the commit is actually built",
+      // so a queued write serialises current state instead of replaying a
+      // snapshot taken before the writes ahead of it landed. That is what makes
+      // the retry below safe for an index file two saves both touch.
+      const content = typeof f.content === 'function' ? f.content() : f.content;
+      const body = typeof content === 'string'
+        ? { content, encoding: 'utf-8' }
+        : { content: content.base64, encoding: 'base64' };
       const res = await fetch(`${this.base}/git/blobs`, {
         method: 'POST', headers: { ...this.headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(body)
       });
@@ -292,6 +424,7 @@ class GitHubAPI {
       return { path: f.path, mode: '100644', type: 'blob', sha };
     }));
 
+    this._step(entry, files.length > 1 ? `${files.length} files uploaded` : 'uploaded');
     return this._commitTreeEntries(treeEntries, this._saveMessage(message, target));
   }
 
@@ -323,7 +456,8 @@ class GitHubAPI {
 
     const commitRes = await fetch(`${this.base}/git/commits`, {
       method: 'POST', headers: { ...this.headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, tree: newTreeSha, parents: [parentSha] })
+      body: JSON.stringify({ message, tree: newTreeSha, parents: [parentSha],
+                             ...(this.author() ? { author: this.author() } : {}) })
     });
     if (!commitRes.ok) { const err = await commitRes.json().catch(() => ({})); throw new Error(err.message || `Failed to create commit (${commitRes.status})`); }
     const newCommitSha = (await commitRes.json()).sha;

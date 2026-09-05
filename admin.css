@@ -593,3 +593,73 @@ a { color: var(--a-accent); }
   border-radius: 999px 999px 0 0;
 }
 .pe-action-bar.collapsed > *:not(.pe-action-bar-toggle) { display: none; }
+
+/* ---------- Recent changes, the queue, and whether it is live ---------- */
+.publish-bar-actions { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.publish-list {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  flex-basis: 100%;
+  border-top: 1px solid var(--a-line);
+}
+.publish-list[hidden] { display: none; }
+.publish-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--a-line);
+  font-size: 0.85rem;
+}
+.pc-what { overflow-wrap: anywhere; }
+.pc-when { color: var(--a-ink-soft); font-size: 0.78rem; margin-left: 0.5rem; white-space: nowrap; }
+.pc-undo {
+  border: 1px solid var(--a-line);
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pc-undo:hover { border-color: var(--a-danger); color: var(--a-danger); }
+
+/* Bottom-right rather than in the flow: it appears while she is working and
+   must not push the thing she is working on around. */
+.queue-status {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 60;
+  max-width: 22rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(20, 18, 16, 0.92);
+  color: #fff;
+  font-size: 0.8rem;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+.queue-status[hidden] { display: none; }
+.qs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.qs-list li { display: flex; align-items: center; gap: 0.5rem; }
+.qs-step { opacity: 0.7; }
+.qs-waiting { color: rgba(255, 255, 255, 0.55); }
+.qs-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.qs-done { color: #9fd0a1; }
+.qs-tick { color: #9fd0a1; font-weight: 700; flex-shrink: 0; width: 12px; }
+
+.spinner {
+  width: 0.85em; height: 0.85em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.5s; } }
