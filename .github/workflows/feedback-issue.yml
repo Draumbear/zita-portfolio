@@ -7,9 +7,9 @@
 #
 # But a plain push notifies nobody: GitHub sends notifications for issues, pull
 # requests, releases and discussions, not for commits. So the file lands, and
-# this turns it into an issue, which does notify -- e-mail, GitHub mobile, the
-# notifications inbox. The permission that was too much to ask of his token is
-# free here, because it belongs to the workflow rather than to him.
+# this turns it into an issue, which does notify. The permission that was too
+# much to ask of that token is free here, because it belongs to the workflow
+# rather than to her.
 name: Turn a report into an issue
 
 on:
@@ -35,6 +35,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
 
@@ -64,6 +65,10 @@ jobs:
               echo
               echo '```json'
               cat "$file"
+              # The dashboard writes JSON with no trailing newline, so without
+              # this the closing fence lands on the last line as "}```" and the
+              # block stops rendering as one.
+              echo
               echo '```'
               echo
               echo "</details>"
@@ -71,10 +76,13 @@ jobs:
               echo "[The file itself](https://github.com/${REPO}/blob/${GITHUB_SHA}/${file})"
             } > body.md
 
+            # Assigned, not merely created: a new issue only reaches the inbox
+            # if the repository is watched for all activity, and a bug report
+            # should not rest on a setting nobody remembers choosing. An
+            # assignment always notifies, and has its own filter in the inbox.
             gh issue create \
               --repo "$REPO" \
               --title "Report: ${summary}" \
-              --label "report" \
-              --body-file body.md \
-              || gh issue create --repo "$REPO" --title "Report: ${summary}" --body-file body.md
+              --assignee "$OWNER" \
+              --body-file body.md
           done
