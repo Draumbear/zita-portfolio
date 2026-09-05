@@ -726,3 +726,59 @@ a { color: var(--a-accent); }
    The lightbox's own image is already full size. */
 #dashboard img { cursor: zoom-in; }
 .admin-lightbox img { cursor: inherit; }
+
+/* ---------- Report a problem ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(10, 10, 10, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+}
+.modal-overlay[hidden] { display: none; }
+.modal {
+  background: var(--a-bg, #fff);
+  border: 1px solid var(--a-line);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  padding: 1.5rem;
+  max-width: 520px; width: 100%;
+  max-height: 85vh; overflow-y: auto;
+}
+.modal h3 { margin: 0 0 0.8rem; font-size: 1.1rem; }
+.modal-body { font-size: 0.9rem; color: var(--a-ink-soft); }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+.report-details { margin-top: 0.9rem; }
+.report-details > summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--a-ink-soft);
+  padding: 0.2rem 0;
+}
+.report-preview {
+  margin: 0.6rem 0 0;
+  max-height: 11rem;
+  overflow: auto;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--a-line);
+  border-radius: 6px;
+  background: var(--a-bg2);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--a-ink-soft);
+}
+
+/* Which build is running, so a report names it without anyone having to ask. */
+.dashboard-version {
+  font-size: 0.72rem;
+  color: var(--a-ink-soft);
+  opacity: 0.75;
+  white-space: nowrap;
+}

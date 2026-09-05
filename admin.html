@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="admin.css?v=4b082fcc">
+<link rel="stylesheet" href="admin.css?v=1779c579">
 <meta name="robots" content="noindex, nofollow">
 </head>
 <body class="admin-body">
@@ -91,6 +91,8 @@
         <button data-tab="projects">Projects</button>
         <button data-tab="media">Media</button>
       </div>
+      <span class="dashboard-version" id="dashboardVersion" title="Dashboard release, and the build of the files running right now"></span>
+      <button class="btn-admin secondary small" id="reportChip" type="button">Report a problem</button>
       <button class="btn-admin secondary small" id="disconnectBtn">Disconnect</button>
     </div>
 
@@ -352,6 +354,32 @@
      thumbnail, a 70px block preview -- which is enough to recognise a photo but
      not to judge one, and judging it is exactly what she is doing when she
      decides whether it belongs on the page. -->
+<!-- Reports are committed to the repository as a file rather than opened as a
+     GitHub issue: an issue needs a token permission this dashboard's token does
+     not carry, and asking for a regenerated token is exactly the errand this is
+     meant to save. Contents write is what it already has. -->
+<div class="modal-overlay" id="reportModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rpTitle">
+    <h3 id="rpTitle">Report a problem</h3>
+    <div class="modal-body">
+      <p class="hint">Something not behaving the way you expected? Describe what you were trying to do and what happened instead.</p>
+      <div class="admin-field">
+        <label for="rpMessage">What were you doing, and what happened?</label>
+        <textarea id="rpMessage" rows="5" placeholder="e.g. I added a photo to the Rewind gallery, but after saving it wasn't there."></textarea>
+      </div>
+      <details class="report-details">
+        <summary>What gets sent along?</summary>
+        <p class="hint">Technical details are attached automatically, so nobody has to guess: which screen you had open, which browser you're using, and your last few steps. No passwords, and nothing from your access token.</p>
+        <pre class="report-preview" id="rpPreview"></pre>
+      </details>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-admin secondary" id="rpCancel" type="button">Cancel</button>
+      <button class="btn-admin" id="rpSend" type="button">Send</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-lightbox" id="adminLightbox" hidden>
   <button class="al-close" id="alClose" type="button" aria-label="Close">&times;</button>
   <button class="al-nav prev" id="alPrev" type="button" aria-label="Previous photo">&#8249;</button>
@@ -360,7 +388,7 @@
   <div class="al-counter" id="alCounter"></div>
 </div>
 
-<script src="admin-github.js?v=4b082fcc"></script>
-<script src="admin.js?v=4b082fcc"></script>
+<script src="admin-github.js?v=1779c579"></script>
+<script src="admin.js?v=1779c579"></script>
 </body>
 </html>

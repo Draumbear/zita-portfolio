@@ -141,8 +141,9 @@ function toastContainer() {
 // toast still showing when another action toasts) render exactly on top of
 // each other instead of stacking.
 function toast(message, type = 'info', action) {
+  if (typeof noteTrail === 'function') noteTrail(`${type === 'err' || type === 'fail' ? 'error' : 'notice'}: ${message}`);
   const el = document.createElement('div');
-  el.className = `toast ${type}`;
+  el.className = `toast ${type === 'fail' ? 'err' : type}`;
   el.textContent = message;
   if (action) {
     const btn = document.createElement('button');
@@ -151,8 +152,19 @@ function toast(message, type = 'info', action) {
     btn.addEventListener('click', () => { action.onClick(); el.remove(); });
     el.appendChild(btn);
   }
+  // The moment she most wants to say something is the moment something failed,
+  // and the moment she is least likely to go hunting for a button. Only where
+  // there is no other offer attached, so this never displaces an undo.
+  if (type === 'fail' && !action && typeof openReport === 'function') {
+    const report = document.createElement('button');
+    report.className = 'toast-action';
+    report.type = 'button';
+    report.textContent = 'Report this';
+    report.addEventListener('click', () => { el.remove(); openReport(`I got this message: "${message}"\n\nWhat I was trying to do: `); });
+    el.appendChild(report);
+  }
   toastContainer().appendChild(el);
-  const timeout = action ? 8000 : 4200;
+  const timeout = (action || type === 'fail') ? 12000 : 4200;
   const timer = setTimeout(() => el.remove(), timeout);
   el.addEventListener('click', (e) => { if (e.target === el) { clearTimeout(timer); el.remove(); } });
 }
@@ -370,7 +382,7 @@ async function undoChange(sha, what) {
     await refreshPublishBar();
     watchRevertedFiles(result && result.paths);
   } catch (e) {
-    toast(`Could not put that back: ${e.message}`, 'err');
+    toast(`Could not put that back: ${e.message}`, 'fail');
   }
 }
 
@@ -385,6 +397,143 @@ function watchRevertedFiles(paths) {
     .then(file => { if (file) trackDeployment([{ path, content: file.content }]); })
     .catch(() => { /* the undo worked; only the status row is missing */ });
 }
+
+// The dashboard's own version, separate from the build hash beside it: the
+// hash says which files are running, this says which release they belong to.
+// Bumped by hand, because a release is a judgement, not a checksum.
+const DASHBOARD_VERSION = '1.0';
+
+// ---------- Report a problem ----------
+// "It doesn't work" costs a round trip. What makes a report answerable is the
+// state around it, and none of that is something Zita could be expected to
+// write down -- so it travels with the report whether or not she thinks to
+// mention it.
+//
+// Committed as a file rather than opened as a GitHub issue: an issue needs
+// Issues:write, which this dashboard's token does not carry, and asking for a
+// regenerated token is exactly the errand this feature exists to save.
+const TRAIL_MAX = 15;
+const trail = [];
+let lastScriptError = null;
+
+function noteTrail(what) {
+  trail.push({ at: new Date().toISOString(), what: String(what).slice(0, 200) });
+  if (trail.length > TRAIL_MAX) trail.shift();
+}
+
+// Errors she never saw are the ones worth having: a save that failed quietly
+// leaves nothing on screen but does leave this.
+window.addEventListener('error', (e) => {
+  lastScriptError = { message: e.message, source: `${e.filename || '?'}:${e.lineno || 0}` };
+  noteTrail(`ERROR: ${e.message}`);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const reason = e.reason && (e.reason.message || e.reason);
+  lastScriptError = { message: String(reason).slice(0, 300), source: 'promise' };
+  noteTrail(`ERROR: ${String(reason).slice(0, 200)}`);
+});
+
+function currentScreen() {
+  const tab = [...document.querySelectorAll('#dashboard .admin-tab')].find(t => !t.hidden);
+  if (!tab) return 'not signed in';
+  const editing = document.getElementById('projectEditor');
+  const open = editing && !editing.classList.contains('hidden') && !editing.hidden;
+  return tab.id.replace('tab-', '') + (open ? ' / project editor' : '');
+}
+
+function assetVersion() {
+  const src = document.querySelector('script[src*="admin.js"]');
+  return (src && (src.getAttribute('src').split('v=')[1] || '')) || 'unknown';
+}
+
+// Deliberately nothing from the token: not the value, not its length, not a
+// prefix. There is no diagnosis worth putting a fragment of a credential into a
+// file in the repository.
+function collectDiagnostics() {
+  return {
+    dashboard: DASHBOARD_VERSION,
+    screen: currentScreen(),
+    build: assetVersion(),
+    connected: !!gh,
+    name: (GitHubStore.load() || {}).authorName || null,
+    deferredPublishing: DEFER_PUBLISH,
+    queue: queueState.active
+      ? { running: queueState.active.label, waiting: queueState.waiting.map(w => w.label) }
+      : { running: null, waiting: [] },
+    lastError: lastScriptError,
+    browser: navigator.userAgent,
+    language: navigator.language,
+    windowSize: `${window.innerWidth}x${window.innerHeight} (screen ${screen.width}x${screen.height})`,
+    online: navigator.onLine,
+    steps: trail.slice(),
+  };
+}
+
+function openReport(prefill) {
+  const box = document.getElementById('rpMessage');
+  box.value = prefill || '';
+  document.getElementById('rpPreview').textContent = JSON.stringify(collectDiagnostics(), null, 2);
+  document.getElementById('reportModal').hidden = false;
+  box.focus();
+}
+
+function closeReport() { document.getElementById('reportModal').hidden = true; }
+
+async function sendReport() {
+  const message = document.getElementById('rpMessage').value.trim();
+  if (!message) {
+    toast('Write down briefly what went wrong.', 'err');
+    document.getElementById('rpMessage').focus();
+    return;
+  }
+  if (!gh) {
+    // Without a connection there is nothing to commit to, and losing what she
+    // just typed would be the worst possible answer to a bug report.
+    toast('Not connected — send this one along directly instead.', 'err');
+    return;
+  }
+
+  const btn = document.getElementById('rpSend');
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const report = { reported: now.toISOString(), by: (GitHubStore.load() || {}).authorName || null, message, ...collectDiagnostics() };
+    // Its own file per report, named by the moment: two reports can never
+    // collide, and nothing already sent can be overwritten by a later one.
+    await gh.putFile(`feedback/${stamp}.json`, JSON.stringify(report, null, 2), `Report: ${message.split('\n')[0].slice(0, 60)}`);
+    closeReport();
+    toast('Thanks — your report has been sent.', 'ok');
+    noteTrail('report sent');
+  } catch (e) {
+    toast(`Could not send that: ${e.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
+function showDashboardVersion() {
+  const el = document.getElementById('dashboardVersion');
+  if (el) el.textContent = `v${DASHBOARD_VERSION} · ${assetVersion()}`;
+}
+
+function initReport() {
+  document.getElementById('reportChip').addEventListener('click', () => openReport());
+  document.getElementById('rpCancel').addEventListener('click', closeReport);
+  document.getElementById('rpSend').addEventListener('click', sendReport);
+  document.getElementById('reportModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('reportModal')) closeReport();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('reportModal').hidden) closeReport();
+  });
+}
+
+initReport();
+showDashboardVersion();
 
 // ---------- Full-size photo viewer ----------
 // Every picture here is drawn small: a 90px project thumbnail, a 70px block
@@ -536,7 +685,7 @@ async function publishChanges() {
     await gh.publish();
     toast('Publishing now — the live site usually catches up within a minute.', 'ok');
   } catch (e) {
-    toast('Publish failed: ' + e.message, 'err');
+    toast('Publish failed: ' + e.message, 'fail');
   } finally {
     btn.disabled = false;
     btn.textContent = label;
@@ -810,7 +959,7 @@ document.getElementById('saveSiteBtn').addEventListener('click', (e) => {
       toast('Site info saved.', 'ok');
       showBuildStatus();
     } catch (e) {
-      toast('Save failed: ' + e.message, 'err');
+      toast('Save failed: ' + e.message, 'fail');
     }
   });
 });
@@ -2180,7 +2329,7 @@ async function saveProject(setLabel) {
     }
     renderProjectLists();
   } catch (e) {
-    toast('Save failed: ' + e.message, 'err');
+    toast('Save failed: ' + e.message, 'fail');
   } finally {
     projectSaveInFlight = false;
     document.getElementById('projectEditor').classList.remove('pe-saving');

@@ -1,0 +1,80 @@
+# Turns a report from the dashboard into a GitHub issue.
+#
+# The dashboard commits reports as files, because that needs only the Contents
+# permission this dashboard's token already carries -- asking for a
+# regenerated token with Issues:write is exactly the errand the feature exists
+# to save.
+#
+# But a plain push notifies nobody: GitHub sends notifications for issues, pull
+# requests, releases and discussions, not for commits. So the file lands, and
+# this turns it into an issue, which does notify -- e-mail, GitHub mobile, the
+# notifications inbox. The permission that was too much to ask of his token is
+# free here, because it belongs to the workflow rather than to him.
+name: Turn a report into an issue
+
+on:
+  push:
+    paths:
+      - 'feedback/*.json'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  open-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Two commits, so the push can be compared with what came before it
+          # and only genuinely new reports are opened.
+          fetch-depth: 2
+
+      - name: Open an issue for each new report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Added files only: editing or deleting an old report should not
+          # reopen it. HEAD^ rather than the push's "before" sha, which is all
+          # zeroes on a new branch and stale after a force push.
+          added=$(git diff --name-only --diff-filter=A HEAD^ HEAD -- 'feedback/*.json' || true)
+          if [ -z "$added" ]; then
+            echo "No new reports in this push."
+            exit 0
+          fi
+
+          for file in $added; do
+            echo "Opening an issue for $file"
+            # Dutch or English, depending on which dashboard sent it.
+            summary=$(jq -r '(.bericht // .message // "")' "$file" | head -n 1 | cut -c1-70)
+            who=$(jq -r '(.door // .by // "unknown")' "$file")
+            screen=$(jq -r '(.scherm // .screen // "?")' "$file")
+            version=$(jq -r '(.dashboard // "?")' "$file")
+
+            {
+              echo "**${who}** reported this from **${screen}** (dashboard v${version})."
+              echo
+              echo "> $(jq -r '(.bericht // .message // "")' "$file")"
+              echo
+              echo "<details><summary>Technical details</summary>"
+              echo
+              echo '```json'
+              cat "$file"
+              echo '```'
+              echo
+              echo "</details>"
+              echo
+              echo "[The file itself](https://github.com/${REPO}/blob/${GITHUB_SHA}/${file})"
+            } > body.md
+
+            gh issue create \
+              --repo "$REPO" \
+              --title "Report: ${summary}" \
+              --label "report" \
+              --body-file body.md \
+              || gh issue create --repo "$REPO" --title "Report: ${summary}" --body-file body.md
+          done
