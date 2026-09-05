@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Dashboard — Zita Decoopman</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="admin.css?v=a1c96044">
+<link rel="stylesheet" href="admin.css?v=4b082fcc">
 <meta name="robots" content="noindex, nofollow">
 </head>
 <body class="admin-body">
@@ -194,7 +194,7 @@
           <div class="admin-field">
             <label for="f-aboutPhoto">Profile photo</label>
             <input type="file" id="f-aboutPhoto" accept="image/*">
-            <img id="aboutPhotoPreview" alt="" style="margin-top:0.6rem; width:110px; height:140px; object-fit:contain; border-radius:6px; border:1px solid var(--a-line); background:var(--a-bg2);">
+            <img title="Click to enlarge" id="aboutPhotoPreview" alt="" style="margin-top:0.6rem; width:110px; height:140px; object-fit:contain; border-radius:6px; border:1px solid var(--a-line); background:var(--a-bg2);">
           </div>
           <div class="admin-field">
             <label for="f-aboutCaption">Photo caption</label>
@@ -281,7 +281,7 @@
         <div class="admin-field">
           <label for="pe-thumb">Thumbnail image</label>
           <input type="file" id="pe-thumb" accept="image/*">
-          <img id="pe-thumb-preview" alt="" style="margin-top:0.6rem; width:90px; height:126px; object-fit:contain; border-radius:6px; border:1px solid var(--a-line); background:var(--a-bg2);">
+          <img title="Click to enlarge" id="pe-thumb-preview" alt="" style="margin-top:0.6rem; width:90px; height:126px; object-fit:contain; border-radius:6px; border:1px solid var(--a-line); background:var(--a-bg2);">
         </div>
 
         <div id="pe-blocks-wrap" class="hidden">
@@ -348,7 +348,19 @@
      scripts/bump_assets_version.py. Run that after changing any of them --
      bumping by hand is what let every page sit on a three-week-old copy of
      styles.css while the file itself kept changing. -->
-<script src="admin-github.js?v=a1c96044"></script>
-<script src="admin.js?v=a1c96044"></script>
+<!-- Full-size viewer. Every picture in this dashboard is drawn small -- a 90px
+     thumbnail, a 70px block preview -- which is enough to recognise a photo but
+     not to judge one, and judging it is exactly what she is doing when she
+     decides whether it belongs on the page. -->
+<div class="admin-lightbox" id="adminLightbox" hidden>
+  <button class="al-close" id="alClose" type="button" aria-label="Close">&times;</button>
+  <button class="al-nav prev" id="alPrev" type="button" aria-label="Previous photo">&#8249;</button>
+  <img id="alImg" src="" alt="">
+  <button class="al-nav next" id="alNext" type="button" aria-label="Next photo">&#8250;</button>
+  <div class="al-counter" id="alCounter"></div>
+</div>
+
+<script src="admin-github.js?v=4b082fcc"></script>
+<script src="admin.js?v=4b082fcc"></script>
 </body>
 </html>

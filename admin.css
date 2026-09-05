@@ -663,3 +663,66 @@ a { color: var(--a-accent); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.5s; } }
+
+/* ---------- Full-size photo viewer ---------- */
+.admin-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 10, 9, 0.92);
+  padding: 3rem 4rem;
+}
+/* [hidden] loses to display:flex without this. */
+.admin-lightbox[hidden] { display: none; }
+.admin-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.al-close,
+.al-nav {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.al-close {
+  top: 1rem; right: 1rem;
+  width: 2.2rem; height: 2.2rem;
+  font-size: 1.4rem;
+}
+.al-nav {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.6rem; height: 2.6rem;
+  font-size: 1.6rem;
+}
+.al-nav.prev { left: 1rem; }
+.al-nav.next { right: 1rem; }
+.al-nav[hidden], .al-counter[hidden] { display: none; }
+.al-close:hover, .al-nav:hover { background: rgba(255, 255, 255, 0.22); }
+.al-counter {
+  position: absolute;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+}
+
+/* Every picture in the dashboard opens full size, so every picture says so.
+   The lightbox's own image is already full size. */
+#dashboard img { cursor: zoom-in; }
+.admin-lightbox img { cursor: inherit; }

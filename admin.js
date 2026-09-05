@@ -386,6 +386,82 @@ function watchRevertedFiles(paths) {
     .catch(() => { /* the undo worked; only the status row is missing */ });
 }
 
+// ---------- Full-size photo viewer ----------
+// Every picture here is drawn small: a 90px project thumbnail, a 70px block
+// preview, a media tile. That is enough to recognise a photo but not to judge
+// one, and judging it is exactly what she is doing when she decides whether it
+// belongs on the page.
+let lightboxPhotos = [];
+let lightboxIndex = 0;
+
+// Where a picture sits next to its siblings -- a gallery block, the media
+// library -- the whole set becomes the reel, so the arrows step through it.
+// Anywhere else it is that one picture on its own.
+const LIGHTBOX_GROUPS = '.gallery-images, .media-grid, #mediaGrid';
+
+function openPhotoLightbox(img) {
+  const group = img.closest(LIGHTBOX_GROUPS);
+  const images = group ? [...group.querySelectorAll('img')] : [img];
+  lightboxPhotos = images.map(el => el.src);
+  showPhoto(Math.max(images.indexOf(img), 0));
+  document.getElementById('adminLightbox').hidden = false;
+}
+
+function showPhoto(index) {
+  if (!lightboxPhotos.length) return;
+  // Wraps around, so holding one arrow key never dead-ends.
+  lightboxIndex = (index + lightboxPhotos.length) % lightboxPhotos.length;
+  document.getElementById('alImg').src = lightboxPhotos[lightboxIndex];
+  document.getElementById('alCounter').textContent = `${lightboxIndex + 1} / ${lightboxPhotos.length}`;
+  const single = lightboxPhotos.length < 2;
+  document.getElementById('alPrev').hidden = single;
+  document.getElementById('alNext').hidden = single;
+  document.getElementById('alCounter').hidden = single;
+}
+
+function closePhotoLightbox() {
+  document.getElementById('adminLightbox').hidden = true;
+  document.getElementById('alImg').src = '';
+  lightboxPhotos = [];
+}
+
+// Which pictures open, decided in one place rather than at each render site --
+// they are built from strings in half a dozen functions and rebuilt on every
+// edit, so a rule spread across them drifts.
+function zoomableImage(target) {
+  const img = target.closest('img');
+  // A blank preview has nothing to enlarge, and the viewer must not reopen
+  // itself from inside.
+  if (!img || !img.getAttribute('src')) return null;
+  if (img.closest('.admin-lightbox')) return null;
+  return img;
+}
+
+function initPhotoLightbox() {
+  const box = document.getElementById('adminLightbox');
+  // Delegated: most of these images are rendered long after this runs.
+  document.getElementById('dashboard').addEventListener('click', (e) => {
+    // A control drawn on top of a thumbnail -- remove, reorder, pick -- is
+    // doing its own job; only a click on the picture itself enlarges it.
+    if (e.target.closest('button, a, label, input')) return;
+    const img = zoomableImage(e.target);
+    if (img) openPhotoLightbox(img);
+  });
+  // Clicking the backdrop closes; clicking the photo or a control does not.
+  box.addEventListener('click', (e) => { if (e.target === box) closePhotoLightbox(); });
+  document.getElementById('alClose').addEventListener('click', closePhotoLightbox);
+  document.getElementById('alPrev').addEventListener('click', () => showPhoto(lightboxIndex - 1));
+  document.getElementById('alNext').addEventListener('click', () => showPhoto(lightboxIndex + 1));
+  document.addEventListener('keydown', (e) => {
+    if (box.hidden) return;
+    if (e.key === 'Escape') closePhotoLightbox();
+    else if (e.key === 'ArrowLeft') showPhoto(lightboxIndex - 1);
+    else if (e.key === 'ArrowRight') showPhoto(lightboxIndex + 1);
+  });
+}
+
+initPhotoLightbox();
+
 function watchWrites(api) {
   for (const name of ['commitBatch', 'putFile', 'deleteFile']) {
     const original = api[name].bind(api);
@@ -945,7 +1021,7 @@ function renderProjectLists() {
     const items = projectsIndex.filter(p => p.group === group).sort((a, b) => (a.order || 0) - (b.order || 0));
     wrap.innerHTML = items.map((p, i) => `
       <div class="project-row">
-        <img src="${(p.thumbnail && p.thumbnail.src) || ''}" alt="">
+        <img src="${(p.thumbnail && p.thumbnail.src) || ''}" alt="" title="Click to enlarge">
         <div class="pr-info">
           <strong>${p.title}${p.contentType === 'legacy' ? '<span class="badge">custom page</span>' : '<span class="badge">managed</span>'}</strong>
           <span>${p.href}</span>
