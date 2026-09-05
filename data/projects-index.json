@@ -7,7 +7,7 @@
     "order": 1,
     "contentType": "managed",
     "thumbnail": {
-      "src": "https://static.wixstatic.com/media/2b9010_2779f286eb1f439da102f7cb54a46444~mv2.jpg/v1/crop/x_0,y_165,w_3000,h_4170/fill/w_600,h_836,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Project1Zita3.jpg",
+      "src": "assets/uploads/project1zita3-1647050e.jpg",
       "alt": "Project Rewind"
     }
   },
@@ -19,7 +19,7 @@
     "order": 2,
     "contentType": "managed",
     "thumbnail": {
-      "src": "https://static.wixstatic.com/media/2b9010_55c07d2bf1d54e5b99c849e26a76e49b~mv2.png/v1/crop/x_15,y_0,w_631,h_878/fill/w_600,h_836,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/moodboard.png",
+      "src": "assets/uploads/moodboard-aa93e8c8.png",
       "alt": "Project Smart Design"
     }
   },
@@ -31,7 +31,7 @@
     "order": 3,
     "contentType": "managed",
     "thumbnail": {
-      "src": "https://static.wixstatic.com/media/2b9010_dcf22825c2104f6ab67da7e4a5bf4349~mv2.png/v1/crop/x_0,y_9,w_468,h_652/fill/w_600,h_836,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Afbeelding1.png",
+      "src": "assets/uploads/afbeelding1-7cfb1a6f.png",
       "alt": "Project Process Innovation"
     }
   },
@@ -43,7 +43,7 @@
     "order": 4,
     "contentType": "managed",
     "thumbnail": {
-      "src": "https://static.wixstatic.com/media/2b9010_7824657309d9474cb3e39d6437048b00~mv2.jpg/v1/fit/w_600,h_900,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_7824657309d9474cb3e39d6437048b00~mv2.jpg",
+      "src": "assets/uploads/photo-04fc97b2.jpg",
       "alt": "Project Start-Up"
     }
   },
@@ -55,7 +55,7 @@
     "order": 1,
     "contentType": "managed",
     "thumbnail": {
-      "src": "https://static.wixstatic.com/media/2b9010_03bd9e8658604ad49a6aa13436086335~mv2.jpg/v1/crop/x_0,y_40,w_3508,h_4880/fill/w_600,h_836,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Streep%20motief%202%20versie%202%20herhaling%20bordeaux%20achtergrond.jpg",
+      "src": "assets/uploads/streep-20motief-202-20versie-202-20herhaling-20b-ffe9922e.jpg",
       "alt": "Personal work"
     }
   },

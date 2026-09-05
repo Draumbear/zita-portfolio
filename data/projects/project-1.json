@@ -7,7 +7,7 @@
       { "type": "paragraph", "text": "A new semester means a new project in Fashion Technology at Hogent. This project: Process Innovation." },
       { "type": "paragraph", "text": "For this project we were asked to design a jeans jacket out of post consumer jeans pants in the style of a known jeans brand. We could choose between Levi's, Lee and Wrangler. This jacket had to be attainable to produce on an industrial level. This is what our Rewrite team came up with." },
       { "type": "paragraph", "text": "<em>Disclaimer: this is a school project — we did not actually design for any of these brands or have a collaboration, they just served as inspiration.</em>" },
-      { "type": "picture", "src": "https://static.wixstatic.com/media/2b9010_dcf22825c2104f6ab67da7e4a5bf4349~mv2.png/v1/fit/w_680,h_936,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Afbeelding1.png", "alt": "Rewrite jeans jacket design sketch" }
+      { "type": "picture", "src": "assets/uploads/afbeelding1-f30e7314.png", "alt": "Rewrite jeans jacket design sketch" }
     ]},
 
     { "type": "paragraph", "text": "Our team chose Levi's as an inspiration, and so Rewrite by Levi's was born. We are a subbrand of Levi's, inspired by the silhouette and the lines in their original denim jacket design. Rewrite is a name I came up with. Our tagline is 'Rewrite the story of jeans'. I got the idea from the fact that we use overstock denim pants and second-hand pants to make a new denim jacket. The original pants that have been worn already got a story from their previous wearer. By taking these jeans and making it into something new, the new wearer can write a new story with this jacket." },
@@ -16,7 +16,7 @@
 
     { "type": "group", "items": [
       { "type": "paragraph", "text": "As we established both the identity of our brand and the design of the denim jacket, we started writing the business plan and making the technical pack for Rewrite. In the business plan Manon writes about the concept of our brand: who we are and what Rewrite stands for, who our target audience is and how we will reach them, as well as what our product assortment is, where we will sell our jacket, what the price is... In the technical pack Luna describes all the technical details of how our jacket gets made, so that the Calvelex factories who make our jackets know exactly what needs to happen." },
-      { "type": "picture", "src": "https://static.wixstatic.com/media/2b9010_9d56d88c87b746e793a97bfcb6a58d59~mv2.png/v1/fit/w_680,h_970,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Schermafbeelding%202024-05-24%20213258.png", "alt": "Rewrite technical pack" }
+      { "type": "picture", "src": "assets/uploads/schermafbeelding-202024-05-24-20213258-1bf93d35.png", "alt": "Rewrite technical pack" }
     ]},
 
     { "type": "paragraph", "text": "Once the actual prototype was made, we also started with the more theoretical side of the project. We had to do a whole process analysis, make a financial plan of how we were going to start up a business from scratch, and I wrote a file on the Goals & Key Performance Indicators of our brand." },
@@ -34,20 +34,20 @@
 
     { "type": "title", "text": "The Result" },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_45600abf40564298ab0be19777fa17f4~mv2.jpg/v1/fit/w_800,h_800,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG-20240523-WA0004.jpg", "alt": "Rewrite denim jacket" },
-      { "src": "https://static.wixstatic.com/media/2b9010_878c2f59705d4aeb968ce324a92affaa~mv2.jpg/v1/fit/w_800,h_800,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_878c2f59705d4aeb968ce324a92affaa~mv2.jpg", "alt": "Rewrite denim jacket detail" },
-      { "src": "https://static.wixstatic.com/media/2b9010_12c458f65cd045278eaa204e45386bc0~mv2.jpg/v1/fit/w_546,h_728,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_12c458f65cd045278eaa204e45386bc0~mv2.jpg", "alt": "Rewrite jacket detail" },
-      { "src": "https://static.wixstatic.com/media/2b9010_6f9806a9e32844a6862c34f7fe3b081d~mv2.jpg/v1/fit/w_640,h_854,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_6f9806a9e32844a6862c34f7fe3b081d~mv2.jpg", "alt": "Rewrite jacket detail" },
-      { "src": "https://static.wixstatic.com/media/2b9010_6e787299ceee49deb9be36e1c59582be~mv2.jpg/v1/fit/w_728,h_942,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_6e787299ceee49deb9be36e1c59582be~mv2.jpg", "alt": "Rewrite jacket detail" },
-      { "src": "https://static.wixstatic.com/media/2b9010_6744b9fa7d8d4e7d9d243163387c46f3~mv2.jpg/v1/fit/w_678,h_678,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_6744b9fa7d8d4e7d9d243163387c46f3~mv2.jpg", "alt": "Rewrite jacket detail" }
+      { "src": "assets/uploads/img-20240523-wa0004-dcb5c03d.jpg", "alt": "Rewrite denim jacket" },
+      { "src": "assets/uploads/photo-febf39b9.jpg", "alt": "Rewrite denim jacket detail" },
+      { "src": "assets/uploads/photo-2a457142.jpg", "alt": "Rewrite jacket detail" },
+      { "src": "assets/uploads/photo-da1d2cb0.jpg", "alt": "Rewrite jacket detail" },
+      { "src": "assets/uploads/photo-2b63e9b6.jpg", "alt": "Rewrite jacket detail" },
+      { "src": "assets/uploads/photo-1346604b.jpg", "alt": "Rewrite jacket detail" }
     ]},
 
     { "type": "title", "text": "Meet the team" },
     { "type": "paragraph", "text": "On the left side from top to bottom: Luca, Zita (me) and Lauren. On the right side from top to bottom: Anna, Manon and Luna." },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_efa109903fba481cb1dd2f5b1990f80f~mv2.jpg/v1/fit/w_474,h_632,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_efa109903fba481cb1dd2f5b1990f80f~mv2.jpg", "alt": "Team photo" },
-      { "src": "https://static.wixstatic.com/media/2b9010_ffefec1b3dbe4fb3b9ec14e78079f3f4~mv2.jpg/v1/fit/w_568,h_758,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_ffefec1b3dbe4fb3b9ec14e78079f3f4~mv2.jpg", "alt": "Team photo" },
-      { "src": "https://static.wixstatic.com/media/2b9010_a5d3abdf76b24b2f8316dd0b32074cf3~mv2.jpg/v1/fit/w_712,h_946,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_a5d3abdf76b24b2f8316dd0b32074cf3~mv2.jpg", "alt": "Team photo" }
+      { "src": "assets/uploads/photo-27d95cab.jpg", "alt": "Team photo" },
+      { "src": "assets/uploads/photo-58ddd26c.jpg", "alt": "Team photo" },
+      { "src": "assets/uploads/photo-14419230.jpg", "alt": "Team photo" }
     ]}
   ]
 }

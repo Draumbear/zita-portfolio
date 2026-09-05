@@ -8,7 +8,7 @@
   "blocks": [
     {
       "type": "picture",
-      "src": "https://static.wixstatic.com/media/2b9010_3aa988c7f3264b1db6b3faf3094660c8~mv2.png/v1/fit/w_500,h_250,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Makovi%20logo.png",
+      "src": "assets/uploads/makovi-20logo-884fb152.png",
       "alt": "Makovi logo"
     },
     {
@@ -37,7 +37,7 @@
     },
     {
       "type": "picture",
-      "src": "https://static.wixstatic.com/media/2b9010_a0306b9f61394fb280ad43216ceb8067~mv2.png/v1/fit/w_1400,h_785,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/moodboard.png",
+      "src": "assets/uploads/moodboard-272c66de.png",
       "alt": "Makovi moodboard"
     },
     {
@@ -60,11 +60,11 @@
       "type": "gallery",
       "images": [
         {
-          "src": "https://static.wixstatic.com/media/2b9010_cad92e2f7d5c44fa84b826974970953c~mv2.png/v1/fit/w_852,h_784,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Schermafbeelding%202024-12-11%20095011.png",
+          "src": "assets/uploads/schermafbeelding-202024-12-11-20095011-c840ccf6.png",
           "alt": "Grace trousers technical drawing"
         },
         {
-          "src": "https://static.wixstatic.com/media/2b9010_d8cc48b14a2f42cd83c643e5bc72a1f1~mv2.png/v1/fit/w_1094,h_770,al_c,q_90,enc_avif,quality_auto/2b9010_d8cc48b14a2f42cd83c643e5bc72a1f1~mv2.png",
+          "src": "assets/uploads/photo-ac16d4aa.png",
           "alt": "Grace trousers detail"
         }
       ]
@@ -89,7 +89,7 @@
       "type": "gallery",
       "images": [
         {
-          "src": "https://static.wixstatic.com/media/2b9010_4ce539135747443d878b286318568d98~mv2.png/v1/fit/w_654,h_920,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Schermafbeelding%202024-12-11%20095453.png",
+          "src": "assets/uploads/schermafbeelding-202024-12-11-20095453-3edd25e4.png",
           "alt": "Grace trousers technical drawing"
         }
       ]
@@ -110,38 +110,38 @@
       "type": "gallery",
       "images": [
         {
-          "src": "https://static.wixstatic.com/media/2b9010_1510d9540a984bf7a568c4597e7de8d8~mv2.jpg/v1/fit/w_682,h_1020,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_1510d9540a984bf7a568c4597e7de8d8~mv2.jpg",
+          "src": "assets/uploads/photo-ca3620f4.jpg",
           "alt": "Project document"
         },
         {
-          "src": "https://static.wixstatic.com/media/2b9010_c41df93521cc4cc99621fdab56ae838b~mv2.jpg/v1/fit/w_558,h_824,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_c41df93521cc4cc99621fdab56ae838b~mv2.jpg",
+          "src": "assets/uploads/photo-4dbf7ed0.jpg",
           "alt": "Project document"
         },
         {
-          "src": "https://static.wixstatic.com/media/2b9010_6567f06daf93413690aa083b5bde1abc~mv2.jpg/v1/fit/w_542,h_824,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_6567f06daf93413690aa083b5bde1abc~mv2.jpg",
+          "src": "assets/uploads/photo-5d5eec62.jpg",
           "alt": "Project document"
         },
         {
-          "src": "https://static.wixstatic.com/media/2b9010_3efa2085b8f04b9281b30558ea56de2c~mv2.jpg/v1/fit/w_542,h_824,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_3efa2085b8f04b9281b30558ea56de2c~mv2.jpg",
+          "src": "assets/uploads/photo-e2c73fd0.jpg",
           "alt": "Project document"
         },
         {
-          "src": "https://static.wixstatic.com/media/2b9010_f7415caa0e6443edafc465b3b8392c94~mv2.jpg/v1/fit/w_682,h_1020,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_f7415caa0e6443edafc465b3b8392c94~mv2.jpg",
+          "src": "assets/uploads/photo-2bd8c093.jpg",
           "alt": "Life Cycle Analysis document"
         },
         {
-          "src": "https://static.wixstatic.com/media/2b9010_a7261de961fb4657bf76b678bec77c44~mv2.jpg/v1/fit/w_760,h_1020,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_a7261de961fb4657bf76b678bec77c44~mv2.jpg",
+          "src": "assets/uploads/photo-1c8950fc.jpg",
           "alt": "Life Cycle Analysis document"
         },
         {
-          "src": "https://static.wixstatic.com/media/2b9010_9c40ba2ff0af4ec9901e372f48b8fe48~mv2.png/v1/fit/w_1094,h_770,al_c,q_90,enc_avif,quality_auto/2b9010_9c40ba2ff0af4ec9901e372f48b8fe48~mv2.png",
+          "src": "assets/uploads/photo-1c09bcc2.png",
           "alt": "Grace trousers detail"
         }
       ]
     },
     {
       "type": "picture",
-      "src": "https://static.wixstatic.com/media/2b9010_1fc5c6e4b4db4bb38e01ce815a093db8~mv2.jpg/v1/fit/w_1228,h_824,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_1fc5c6e4b4db4bb38e01ce815a093db8~mv2.jpg",
+      "src": "assets/uploads/photo-6f775b76.jpg",
       "alt": "Grace trousers styling photoshoot"
     },
     {
@@ -157,7 +157,7 @@
         },
         {
           "type": "picture",
-          "src": "https://static.wixstatic.com/media/2b9010_eb29ba1bed994e86b0e915d50f8baf29~mv2.jpg/v1/fit/w_678,h_906,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/470054107_2337173256643623_8575933045101819440_n.jpg",
+          "src": "assets/uploads/470054107-2337173256643623-8575933045101819440-n-e89b092c.jpg",
           "alt": "Makovi team"
         }
       ]

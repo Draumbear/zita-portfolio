@@ -5,82 +5,82 @@
   "blocks": [
     { "type": "title", "text": "Pattern studies" },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_7cb0fb9ec0604c9eb44973ef033a416c~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_20221215_105317.jpg", "alt": "Pattern study" },
-      { "src": "https://static.wixstatic.com/media/2b9010_228add7bd78945f796eb29e9f86b5e7e~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_20221208_105249.jpg", "alt": "Pattern study" },
-      { "src": "https://static.wixstatic.com/media/2b9010_19c1d0d649a4442ca22727c177d3d7f5~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_20221117_104631.jpg", "alt": "Pattern study" },
-      { "src": "https://static.wixstatic.com/media/2b9010_9fff586d4ed94dae8c9211766528ed65~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_20230424_104656.jpg", "alt": "Pattern study" }
+      { "src": "assets/uploads/img-20221215-105317-9494aea5.jpg", "alt": "Pattern study" },
+      { "src": "assets/uploads/img-20221208-105249-10708f64.jpg", "alt": "Pattern study" },
+      { "src": "assets/uploads/img-20221117-104631-f5069561.jpg", "alt": "Pattern study" },
+      { "src": "assets/uploads/img-20230424-104656-232503de.jpg", "alt": "Pattern study" }
     ]},
 
     { "type": "title", "text": "Skirts" },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_ae037e7f90b945818a45d0c8875fc8e2~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_20230327_103521.jpg", "alt": "Skirt design" },
-      { "src": "https://static.wixstatic.com/media/2b9010_fb3f78301f344ed08daa31a6d574c327~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_20230515_103116.jpg", "alt": "Skirt design" },
-      { "src": "https://static.wixstatic.com/media/2b9010_6ff50d3bde6c4c41bd1647b33202dcaf~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20231215085510.jpg", "alt": "Skirt design" },
-      { "src": "https://static.wixstatic.com/media/2b9010_70ccf19f05ad4796b76616d47d5c6db5~mv2.jpg/v1/fit/w_472,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/kopie.jpg", "alt": "Skirt design" }
+      { "src": "assets/uploads/img-20230327-103521-3b51c2db.jpg", "alt": "Skirt design" },
+      { "src": "assets/uploads/img-20230515-103116-0d43f5fa.jpg", "alt": "Skirt design" },
+      { "src": "assets/uploads/img20231215085510-88cc9046.jpg", "alt": "Skirt design" },
+      { "src": "assets/uploads/kopie-3ad2de2d.jpg", "alt": "Skirt design" }
     ]},
 
     { "type": "title", "text": "Tops and blouses" },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_b5aa3b07e7db47cba94ffab4e30cdf80~mv2.jpg/v1/fit/w_424,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Kopiee.jpg", "alt": "Top design" },
-      { "src": "https://static.wixstatic.com/media/2b9010_b34bc6716b944564bc5bc7fd809939e8~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240306155747.jpg", "alt": "Top design" },
-      { "src": "https://static.wixstatic.com/media/2b9010_0319654ee0eb4978bb0c06afd20ef41a~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240306155753.jpg", "alt": "Top design" },
-      { "src": "https://static.wixstatic.com/media/2b9010_05302929ea0a41ddbb79f37e440ca861~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240306155758.jpg", "alt": "Top design" }
+      { "src": "assets/uploads/kopiee-8ffd3953.jpg", "alt": "Top design" },
+      { "src": "assets/uploads/img20240306155747-13616427.jpg", "alt": "Top design" },
+      { "src": "assets/uploads/img20240306155753-2908db4d.jpg", "alt": "Top design" },
+      { "src": "assets/uploads/img20240306155758-1e654737.jpg", "alt": "Top design" }
     ]},
 
     { "type": "title", "text": "Technical files" },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_0c833edfe3934bc993a8f66a59c480be~mv2.jpg/v1/fit/w_842,h_596,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Evaluatie3_ZitaDecoopman_Tekengebied%201.jpg", "alt": "Technical file" },
-      { "src": "https://static.wixstatic.com/media/2b9010_e85a5a397a094849b37d8de33cfd3711~mv2.jpg/v1/fit/w_842,h_596,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Evaluatie3_ZitaDecoopman-03.jpg", "alt": "Technical file" },
-      { "src": "https://static.wixstatic.com/media/2b9010_8f97b5832d8f452ba86bb72d4a6306e2~mv2.jpg/v1/fit/w_842,h_596,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Evaluatie3_ZitaDecoopman-02.jpg", "alt": "Technical file" },
-      { "src": "https://static.wixstatic.com/media/2b9010_06b3362b3cf745c2af315d6732f4d1af~mv2.jpg/v1/fit/w_842,h_596,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Evaluatie3_ZitaDecoopman-04.jpg", "alt": "Technical file" }
+      { "src": "assets/uploads/evaluatie3-zitadecoopman-tekengebied-201-2ae17d20.jpg", "alt": "Technical file" },
+      { "src": "assets/uploads/evaluatie3-zitadecoopman-03-5c2f1747.jpg", "alt": "Technical file" },
+      { "src": "assets/uploads/evaluatie3-zitadecoopman-02-5295e29f.jpg", "alt": "Technical file" },
+      { "src": "assets/uploads/evaluatie3-zitadecoopman-04-3dd342b7.jpg", "alt": "Technical file" }
     ]},
-    { "type": "picture", "src": "https://static.wixstatic.com/media/2b9010_81e19e98fa4f417fa64e833616131511~mv2.jpg/v1/fit/w_1104,h_782,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Evaluatie3_ZitaDecoopman-05.jpg", "alt": "Technical file" },
+    { "type": "picture", "src": "assets/uploads/evaluatie3-zitadecoopman-05-41fea516.jpg", "alt": "Technical file" },
 
     { "type": "title", "text": "Coats" },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_bd332ceda4014b47af1375349f603d5c~mv2.jpg/v1/fit/w_800,h_600,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG-20251013-WA0066(1).jpg", "alt": "Coat design" },
-      { "src": "https://static.wixstatic.com/media/2b9010_14c09701031d4a6fa7c34416e669542e~mv2.png/v1/fit/w_508,h_900,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Gemini_Generated_Image_q01luaq01luaq01l.png", "alt": "Coat design concept" }
+      { "src": "assets/uploads/img-20251013-wa0066-1-222a14fc.jpg", "alt": "Coat design" },
+      { "src": "assets/uploads/gemini-generated-image-q01luaq01luaq01l-dc49c733.png", "alt": "Coat design concept" }
     ]},
 
     { "type": "title", "text": "Tailor-made coat" },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_1bd63727b583498eb5c9142ca4c93ff1~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240918124147.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_00632de219cb4b76a810ce7d0a1f3e13~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240918123926.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_cbd8a35d9f884ec78b9128ba59f0953b~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240918124158.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_dd36a0ea7dee4ce5b8593603ef250925~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240918124026.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_8b48249ddc3a4971974dabb3a5c03212~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_8b48249ddc3a4971974dabb3a5c03212~mv2.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_17491036f0e1440c8c81082eca3880fc~mv2.jpg/v1/crop/x_287,y_603,w_2345,h_3158/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240923144101.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_62b482e8092044b3a92d609f85e583fd~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240923144045.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_de92468feeb7450c978abc67eb047a29~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240923144134.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_a2a46baa220145d2adcb7e791c9c0219~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240923144206.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_54be8ed87d77413b84a1115336f8c1f6~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240923144105.jpg", "alt": "Tailor-made coat process" },
-      { "src": "https://static.wixstatic.com/media/2b9010_35258d4034b1441da85d4350b2900f8f~mv2.jpg/v1/fit/w_614,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240923144119.jpg", "alt": "Tailor-made coat process" }
+      { "src": "assets/uploads/img20240918124147-7eb8654e.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/img20240918123926-bc16e7c1.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/img20240918124158-125b7c0c.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/img20240918124026-0a5b40a6.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/photo-06355a34.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/img20240923144101-aed25868.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/img20240923144045-a4d23a1f.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/img20240923144134-9d7de367.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/img20240923144206-a65ddd63.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/img20240923144105-1961ad78.jpg", "alt": "Tailor-made coat process" },
+      { "src": "assets/uploads/img20240923144119-b237187d.jpg", "alt": "Tailor-made coat process" }
     ]},
-    { "type": "picture", "src": "https://static.wixstatic.com/media/2b9010_596b6a8997ae43159a8f7774b591221b~mv2.jpg/v1/fit/w_1086,h_812,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG20240923144154.jpg", "alt": "Finished tailor-made coat" },
+    { "type": "picture", "src": "assets/uploads/img20240923144154-0c4b0480.jpg", "alt": "Finished tailor-made coat" },
 
     { "type": "title", "text": "Sewing work" },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_0b38cbf285054d2c9360770b082ab6d5~mv2.jpg/v1/fit/w_492,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Kopieeee.jpg", "alt": "Sewing work" },
-      { "src": "https://static.wixstatic.com/media/2b9010_69949a4ba05943ddbbcf82d31b88a2cf~mv2.jpg/v1/crop/x_632,y_0,w_1896,h_4000/fit/w_378,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_20200629_173946.jpg", "alt": "Sewing work" },
-      { "src": "https://static.wixstatic.com/media/2b9010_2adc3b78917240368d450c458da901ac~mv2.jpg/v1/crop/x_92,y_0,w_862,h_1600/fit/w_430,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Jurk%201.jpg", "alt": "Handmade dress" },
-      { "src": "https://static.wixstatic.com/media/2b9010_2ffefa06f1f645fab6b980fb462bc02f~mv2.jpg/v1/crop/x_100,y_0,w_862,h_1600/fit/w_430,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/Jurk%202.jpg", "alt": "Handmade dress" },
-      { "src": "https://static.wixstatic.com/media/2b9010_1819bfbfc73b4493bb526b0b2b7b31a6~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_1819bfbfc73b4493bb526b0b2b7b31a6~mv2.jpg", "alt": "Sewing work" },
-      { "src": "https://static.wixstatic.com/media/2b9010_f2f2fd1ac9fa4ba4adf1614c86ac8802~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_f2f2fd1ac9fa4ba4adf1614c86ac8802~mv2.jpg", "alt": "Sewing work" },
-      { "src": "https://static.wixstatic.com/media/2b9010_1d17af5329834e20b890518038aa430d~mv2.jpg/v1/fit/w_600,h_798,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_1d17af5329834e20b890518038aa430d~mv2.jpg", "alt": "Sewing work" }
+      { "src": "assets/uploads/kopieeee-ec323e19.jpg", "alt": "Sewing work" },
+      { "src": "assets/uploads/img-20200629-173946-d1e262b6.jpg", "alt": "Sewing work" },
+      { "src": "assets/uploads/jurk-201-705c5c97.jpg", "alt": "Handmade dress" },
+      { "src": "assets/uploads/jurk-202-e88db799.jpg", "alt": "Handmade dress" },
+      { "src": "assets/uploads/photo-e05acaf7.jpg", "alt": "Sewing work" },
+      { "src": "assets/uploads/photo-d5872629.jpg", "alt": "Sewing work" },
+      { "src": "assets/uploads/photo-56ae8bec.jpg", "alt": "Sewing work" }
     ]},
 
     { "type": "title", "text": "Creative Portfolio" },
     { "type": "paragraph", "text": "In my second year of Textile Design at KASK I applied for an Erasmus Exchange at the Lucerne University of Applied Sciences and Arts. These are some parts from my accepted portfolio, from both during my education at KASK and before." },
     { "type": "gallery", "images": [
-      { "src": "https://static.wixstatic.com/media/2b9010_08923b1dafe3425a9042c567b35d5447~mv2.png/v1/fit/w_928,h_1324,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_08923b1dafe3425a9042c567b35d5447~mv2.png", "alt": "Creative portfolio page" },
-      { "src": "https://static.wixstatic.com/media/2b9010_55f5e3a819924fe387173ac1331a6e2d~mv2.png/v1/fit/w_928,h_1324,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_55f5e3a819924fe387173ac1331a6e2d~mv2.png", "alt": "Creative portfolio page" },
-      { "src": "https://static.wixstatic.com/media/2b9010_1aa9c74564c947c7a51def8ca321c0bc~mv2.png/v1/fit/w_748,h_1054,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_1aa9c74564c947c7a51def8ca321c0bc~mv2.png", "alt": "Creative portfolio page" },
-      { "src": "https://static.wixstatic.com/media/2b9010_a141ed0df5bd47f9803604453a5fb727~mv2.png/v1/fit/w_580,h_756,al_c,q_90,enc_avif,quality_auto/2b9010_a141ed0df5bd47f9803604453a5fb727~mv2.png", "alt": "Creative portfolio page" },
-      { "src": "https://static.wixstatic.com/media/2b9010_e56285a58bbe4839b686e8d3bf72ce53~mv2.png/v1/fit/w_728,h_550,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_e56285a58bbe4839b686e8d3bf72ce53~mv2.png", "alt": "Creative portfolio page" },
-      { "src": "https://static.wixstatic.com/media/2b9010_47363444d1c842c0b8dd6e62b7b6bbf9~mv2.png/v1/fit/w_678,h_964,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_47363444d1c842c0b8dd6e62b7b6bbf9~mv2.png", "alt": "Creative portfolio page" },
-      { "src": "https://static.wixstatic.com/media/2b9010_37ddebae4181476da504e22cdc82db2e~mv2.png/v1/fit/w_678,h_964,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_37ddebae4181476da504e22cdc82db2e~mv2.png", "alt": "Creative portfolio page" },
-      { "src": "https://static.wixstatic.com/media/2b9010_10836b2377064603925a86cdcca11920~mv2.png/v1/fit/w_678,h_964,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_10836b2377064603925a86cdcca11920~mv2.png", "alt": "Creative portfolio page" },
-      { "src": "https://static.wixstatic.com/media/2b9010_7a86fab24e0f4797a61483f27036def1~mv2.png/v1/fit/w_678,h_936,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/2b9010_7a86fab24e0f4797a61483f27036def1~mv2.png", "alt": "Creative portfolio page" }
+      { "src": "assets/uploads/photo-7b7a6cec.png", "alt": "Creative portfolio page" },
+      { "src": "assets/uploads/photo-83c33022.png", "alt": "Creative portfolio page" },
+      { "src": "assets/uploads/photo-6a3900f8.png", "alt": "Creative portfolio page" },
+      { "src": "assets/uploads/photo-f3da610d.png", "alt": "Creative portfolio page" },
+      { "src": "assets/uploads/photo-41f53619.png", "alt": "Creative portfolio page" },
+      { "src": "assets/uploads/photo-ea22f74d.png", "alt": "Creative portfolio page" },
+      { "src": "assets/uploads/photo-71e30452.png", "alt": "Creative portfolio page" },
+      { "src": "assets/uploads/photo-d39bba64.png", "alt": "Creative portfolio page" },
+      { "src": "assets/uploads/photo-cdf12772.png", "alt": "Creative portfolio page" }
     ]}
   ]
 }
