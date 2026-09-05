@@ -267,6 +267,29 @@ function renderProjectError(message) {
 // file existing yet.
 function renderProjectData(data) {
   document.title = `${data.title} — Zita Decoopman`;
+  // Each project is its own page as far as a search engine is concerned, so it
+  // needs its own address. A static canonical in project.html would have said
+  // every project was the same page, so it is set here, once the slug is known.
+  const slug = new URLSearchParams(location.search).get('slug');
+  if (slug) {
+    const canonical = document.querySelector('link[rel="canonical"]') ||
+      document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' }));
+    canonical.href = `${location.origin}${location.pathname}?slug=${encodeURIComponent(slug)}`;
+    const meta = {
+      'og:title': `${data.title} — Zita Decoopman`,
+      'og:url': canonical.href,
+      'twitter:title': `${data.title} — Zita Decoopman`,
+    };
+    const cover = (data.thumbnail && data.thumbnail.src) || '';
+    if (cover) {
+      meta['og:image'] = new URL(cover, location.href).href;
+      meta['twitter:image'] = meta['og:image'];
+    }
+    for (const [key, value] of Object.entries(meta)) {
+      const el = document.querySelector(`meta[property="${key}"], meta[name="${key}"]`);
+      if (el) el.content = value;
+    }
+  }
 
   const eyebrow = document.getElementById('projectEyebrow');
   const title = document.getElementById('projectTitle');

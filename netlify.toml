@@ -1,0 +1,49 @@
+[build]
+  publish = "."
+
+# Every internal link is written with .html, so serving those URLs as-is keeps
+# one address per page. With pretty URLs on, Netlify's default, each of those
+# links would 301 to an extensionless twin and the canonicals in the pages would
+# point at a redirect.
+[build.processing.html]
+  pretty_urls = false
+
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404
+
+# The dashboard keeps a GitHub token in localStorage, which makes script
+# injection on this origin worth far more than on an ordinary portfolio. The
+# site loads no third-party code at all -- the fonts are self-hosted for the
+# same reason -- so 'self' is a policy it can actually keep, rather than one
+# widened until it means nothing.
+#
+#   style-src allows inline: the markup carries style="" attributes, and
+#     injected CSS cannot read a token.
+#   img-src allows data: and blob: for the dashboard's image previews, and
+#     static.wixstatic.com for the one card thumbnail Wix still answers 403
+#     for -- drop that origin once it has been re-uploaded and nothing on the
+#     site points outward any more.
+#   connect-src names GitHub because that is where the dashboard saves.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://static.wixstatic.com; font-src 'self'; connect-src 'self' https://api.github.com https://raw.githubusercontent.com; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# Photo filenames carry a hash of their source URL and never change, so they may
+# be cached forever; the pages that reference them must not be, or a published
+# change stays invisible.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
