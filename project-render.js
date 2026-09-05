@@ -8,9 +8,17 @@
 const BAND_CYCLE = ['a', 'b', 'tint', 'dark'];
 
 function escapeHTML(str) {
-  const div = document.createElement('div');
-  div.textContent = str == null ? '' : String(str);
-  return div.innerHTML;
+  // Quotes as well as angle brackets. The div/textContent trick escapes < > &
+  // but leaves " and ' alone, which is silently fine in text and wrong in an
+  // attribute: a value containing a quote closes the attribute and everything
+  // after it is parsed as markup. Most of this file's interpolations are in
+  // attributes.
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function fileExt(src) {
