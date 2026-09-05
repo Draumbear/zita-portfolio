@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin.html
+Disallow: /404.html
+Disallow: /my-biggest-passion-project.html
+Disallow: /personal-projects.html
+Disallow: /project-1.html
+Disallow: /project-smart-design.html
+Disallow: /project-start-up.html
+Disallow: /rewind.html
+
+Sitemap: https://draumbear.github.io/zita-portfolio/sitemap.xml
